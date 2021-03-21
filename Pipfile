@@ -11,6 +11,8 @@ requests = "*"
 python-dotenv = "*"
 
 [dev-packages]
+mock = "*"
+pytest = "*"
 
 [requires]
 python_version = "3.9"
