@@ -1,5 +1,5 @@
 from flask import jsonify
-from server.models import db, Server
+from models import db, Server
 
 
 def get_all_servers():
