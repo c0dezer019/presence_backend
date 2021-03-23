@@ -40,10 +40,9 @@ def update_server(server_id, **update_values):
         raise Exception(f'No server at id {server_id}')
 
 
-def remove_server(server_id):
-    server = Server.query.get(server_id)
-
-    if server:
+def remove_server(**kwargs):
+    try:
+        server = Server.query.filter_by(**kwargs)
         db.session.remove(server)
-    else:
-        raise Exception(f'No server at id {server_id}')
+    except AttributeError:
+        raise Exception(f'No server at id {kwargs["id"]}')
