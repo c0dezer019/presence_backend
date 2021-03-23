@@ -17,6 +17,7 @@ development = dict(
     PORT = os.getenv('PORT'),
 )
 testing = dict(
+    DB = os.getenv('T_DB'),
     USER = os.getenv('USER'),
     PASS = os.getenv('PASS'),
     HOST = os.getenv('HOST'),
