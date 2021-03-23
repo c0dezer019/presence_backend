@@ -1,5 +1,34 @@
-from app import db
-from datetime import datetime, date
+from datetime import datetime
+from flask import Flask
+from flask_sqlalchemy import SQLAlchemy
+from typing import Callable
+from settings import env, mode
+
+env = env[mode]
+USER = env['USER']
+PASS = env['PASS']
+HOST = env['HOST']
+PORT = env['PORT']
+DB = env['DB']
+
+app = Flask(__name__)
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SQLALCHEMY_ECHO'] = True
+app.config['SQLALCHEMY_DATABASE_URI'] = f'postgresql://{USER}:{PASS}@{HOST}:{PORT}/{DB}'
+
+
+class PSQLAlchemy(SQLAlchemy):
+    Column: Callable
+    Integer: Callable
+    String: Callable
+    DateTime: Callable
+    Table: Callable
+    ForeignKey: Callable
+    relationship: Callable
+    backref: Callable
+
+
+db = PSQLAlchemy()
 
 user_server_association = db.Table(
     'user_server_association',
@@ -14,8 +43,8 @@ class Server(db.Model):
     id = db.Column(db.Integer, primary_key = True, nullable = False)
     name = db.Column(db.String, nullable = False)
     last_activity = db.Column(db.String, default = 'None')
-    last_activity_ts = db.Column(db.DateTime, default = datetime(1970, 1, 1, 00, 00, 00))
-    status = db.Column(db.String, nullable = False, default = 'insufficient data')
+    last_activity_ts = db.Column(db.DateTime, default = datetime(1970, 1, 1, 0, 0))
+    status = db.Column(db.String, nullable = False, default = 'new')
     users = db.relationship("User", secondary = user_server_association, lazy = 'subquery',
                             backref = db.backref('servers', lazy = True))
     date_added = db.Column(db.DateTime, default = datetime.utcnow)
@@ -33,13 +62,11 @@ class User(db.Model):
 
     id = db.Column(db.Integer, primary_key = True, nullable = False)
     username = db.Column(db.String, unique = True, nullable = False)
-    servers = db.relationship('Server', secondary = user_server_association, lazy = 'subquery',
-                              backref = db.backref('users', lazy = True))
     last_activity = db.Column(db.String, default = 'None')
     last_activity_loc = db.Column(db.String, default = 'None')
-    last_activity_ts = db.Column(db.DateTime, default = datetime(1970, 1, 1, 00, 00, 00))
+    last_activity_ts = db.Column(db.DateTime, default = datetime(1970, 1, 1, 0, 0))
     # Overall Discord status. Not representative of individual servers.
-    status = db.Column(db.String, nullable = False, default = 'insufficient data')
+    status = db.Column(db.String, nullable = False, default = 'new')
     date_added = db.Column(db.DateTime, default = datetime.utcnow)
 
     def __repr__(self):
