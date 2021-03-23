@@ -1,20 +1,6 @@
 from datetime import datetime
-from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from typing import Callable
-from settings import env, mode
-
-env = env[mode]
-USER = env['USER']
-PASS = env['PASS']
-HOST = env['HOST']
-PORT = env['PORT']
-DB = env['DB']
-
-app = Flask(__name__)
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SQLALCHEMY_ECHO'] = True
-app.config['SQLALCHEMY_DATABASE_URI'] = f'postgresql://{USER}:{PASS}@{HOST}:{PORT}/{DB}'
 
 
 class PSQLAlchemy(SQLAlchemy):
