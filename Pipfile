@@ -9,6 +9,7 @@ flask-sqlalchemy = "*"
 sqlalchemy = "*"
 requests = "*"
 python-dotenv = "*"
+pytz = "*"
 
 [dev-packages]
 flask-testing = "*"
