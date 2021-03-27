@@ -1,5 +1,5 @@
 from flask import jsonify
-from main import db
+from main.models import db
 from main.models import Server
 
 

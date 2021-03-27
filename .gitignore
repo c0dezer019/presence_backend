@@ -1,3 +1,4 @@
 .idea
 .env
+.flaskenv
 .pytest_cache

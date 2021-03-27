@@ -1,18 +1,18 @@
-from main.__init__ import create_app
+from main import create_app
 from datetime import datetime
-from main import db
+from main.models import db
 from main.config import TestConfiguration
 from main.models import User, Server
 import pytest
 
 
-@pytest.fixture
+@pytest.fixture(scope = 'session')
 def app():
     def _app(config_class):
         f_app = create_app(config_class)
         f_app.test_request_context().push()
 
-        if config_class == 'config.TestConfiguration':
+        if config_class == 'main.config.TestConfiguration':
             db.drop_all()
 
         return f_app

@@ -1,9 +1,21 @@
-from main import db
 from datetime import datetime
+from flask_sqlalchemy import SQLAlchemy
+from typing import Callable
 from pytz import timezone
 
-datetime_format = '%m/%d/%Y %H:%M:%S %Z%z'
-default_time = timezone('UTC').localize(datetime(1970, 1, 1, 0, 0)).strftime('%m/%d/%Y %H:%M:%S %Z%z')
+
+class PSQLAlchemy(SQLAlchemy):
+    Column: Callable
+    Integer: Callable
+    String: Callable
+    DateTime: Callable
+    Table: Callable
+    ForeignKey: Callable
+    relationship: Callable
+    backref: Callable
+
+
+db = PSQLAlchemy()
 
 user_server_association = db.Table(
     'associationTable',
@@ -20,14 +32,15 @@ class User(db.Model):
     username = db.Column(db.String, unique = True, nullable = False)
     last_activity = db.Column(db.String, server_default = 'None')
     last_activity_loc = db.Column(db.String, server_default = 'None')
-    last_activity_ts = db.Column(db.DateTime, server_default = default_time)
+    last_activity_ts = db.Column(db.DateTime(timezone = True), default = datetime(1970, 1, 1, 0, 0))
     # Overall Discord status. Not representative of individual servers.
     status = db.Column(db.String, nullable = False, server_default = 'new')
-    date_added = db.Column(db.DateTime, server_default = datetime.now(timezone('US/Central')).strftime(datetime_format))
+    date_added = db.Column(db.DateTime(timezone = True), default = datetime.now(timezone('US/Central')))
 
     def __repr__(self):
         return f'<User(id = {self.id}, username = {self.username}, last_activity = {self.last_activity},' \
-               f' last_activity_loc = {self.last_activity_loc}, last_activity_ts = {self.last_activity_ts})>'
+               f' last_activity_loc = {self.last_activity_loc}, last_activity_ts = {self.last_activity_ts}),' \
+               f' status = {self.status}, date_added = {self.date_added}>'
 
     def as_dict(self):
         return { c.name: getattr(self, c.name) for c in self.__table__.columns }
@@ -39,11 +52,11 @@ class Server(db.Model):
     id = db.Column(db.Integer, primary_key = True)
     name = db.Column(db.String, nullable = False)
     last_activity = db.Column(db.String, server_default = 'None')
-    last_activity_ts = db.Column(db.DateTime, server_default = default_time)
+    last_activity_ts = db.Column(db.DateTime(timezone = True), default = datetime(1970, 1, 1, 0, 0))
     status = db.Column(db.String, nullable = False, server_default = 'new')
     users = db.relationship(User, secondary = user_server_association, lazy = 'subquery',
                             backref = db.backref('servers', lazy = True))
-    date_added = db.Column(db.DateTime, server_default = datetime.now(timezone('US/Central')).strftime(datetime_format))
+    date_added = db.Column(db.DateTime(timezone = True), default = datetime.now(timezone('US/Central')))
 
     def __repr__(self):
         return f'<User(id = {self.id}, server = {self.name}, last_activity = {self.last_activity},' \

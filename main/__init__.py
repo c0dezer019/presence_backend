@@ -1,34 +1,24 @@
+from dotenv import load_dotenv
 from flask import Flask
-from flask_sqlalchemy import SQLAlchemy
-from typing import Callable
+from pathlib import Path
 import os
 
-
-class PSQLAlchemy(SQLAlchemy):
-    Column: Callable
-    Integer: Callable
-    String: Callable
-    DateTime: Callable
-    Table: Callable
-    ForeignKey: Callable
-    relationship: Callable
-    backref: Callable
+env_path = Path('', '../.env')
+load_dotenv(dotenv_path = env_path)
 
 
-db = PSQLAlchemy()
-
-
-def create_app(flask_config = None):
+def create_app():
     flask_app = Flask(__name__, instance_relative_config = True)
-    flask_app.config.from_mapping(
-        SECRET = os.getenv('SECRET'),
-        DATABASE = os.path.join(flask_app.instance_path, 'main.config'),
-    )
 
-    if flask_config is None:
-        flask_app.config.from_pyfile('config.BaseConfiguration', silent = True)
-    else:
-        flask_app.config.from_mapping(flask_config)
+    if not os.getenv('MODE'):
+        flask_app.config.from_object('main.config.ProductionConfiguration')
+    elif os.getenv('MODE') == 'testing':
+        flask_app.config.from_object('main.config.TestConfiguration')
+    elif os.getenv('MODE') == 'development':
+        flask_app.config.from_object('main.config.BaseConfiguration')
+
+    from main.models import db
+    db.init_app(flask_app)
 
     try:
         os.makedirs(flask_app.instance_path)
