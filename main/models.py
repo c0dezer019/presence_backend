@@ -64,9 +64,3 @@ class Server(db.Model):
 
     def as_dict(self):
         return { c.name: getattr(self, c.name) for c in self.__table__.columns }
-
-# s = Server()
-# u = User()
-# s.users.append(u)
-# db.session.add(s)
-# db.session.commit()
