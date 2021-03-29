@@ -29,6 +29,7 @@ class User(db.Model):
     __tablename__ = 'users'
 
     id = db.Column(db.Integer, primary_key = True, nullable = False)
+    user_id = db.Column(db.Integer, nullable = False, unique = True)
     username = db.Column(db.String, unique = True, nullable = False)
     last_activity = db.Column(db.String, server_default = 'None')
     last_activity_loc = db.Column(db.String, server_default = 'None')
@@ -38,9 +39,9 @@ class User(db.Model):
     date_added = db.Column(db.DateTime(timezone = True), default = datetime.now(timezone('US/Central')))
 
     def __repr__(self):
-        return f'<User(id = {self.id}, username = {self.username}, last_activity = {self.last_activity},' \
-               f' last_activity_loc = {self.last_activity_loc}, last_activity_ts = {self.last_activity_ts}),' \
-               f' status = {self.status}, date_added = {self.date_added}>'
+        return f'<User(id = {self.id}, user_id = {self.user_id}, username = {self.username}, ' \
+               f' last_activity = {self.last_activity}, last_activity_loc = {self.last_activity_loc}, ' \
+               f' last_activity_ts = {self.last_activity_ts}), status = {self.status}, date_added = {self.date_added}>'
 
     def as_dict(self):
         return { c.name: getattr(self, c.name) for c in self.__table__.columns }
@@ -50,6 +51,7 @@ class Server(db.Model):
     __tablename__ = 'servers'
 
     id = db.Column(db.Integer, primary_key = True)
+    server_id = db.Column(db.Integer, nullable = False, unique = True)
     name = db.Column(db.String, nullable = False)
     last_activity = db.Column(db.String, server_default = 'None')
     last_activity_ts = db.Column(db.DateTime(timezone = True), default = datetime(1970, 1, 1, 0, 0))
@@ -59,7 +61,7 @@ class Server(db.Model):
     date_added = db.Column(db.DateTime(timezone = True), default = datetime.now(timezone('US/Central')))
 
     def __repr__(self):
-        return f'<User(id = {self.id}, server = {self.name}, last_activity = {self.last_activity},' \
+        return f'<Server(id = {self.id}, name = {self.name}, last_activity = {self.last_activity},' \
                f' last_activity_ts = {self.last_activity_ts})>'
 
     def as_dict(self):
