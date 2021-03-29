@@ -2,3 +2,5 @@
 .env
 .flaskenv
 .pytest_cache
+tests/dbsetup.py
+test.py
