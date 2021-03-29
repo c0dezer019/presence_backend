@@ -25,7 +25,7 @@ def create_app():
     except OSError:
         pass
 
-    from bot_routing import bot
+    from main.bot_routing import bot
     flask_app.register_blueprint(bot)
 
     return flask_app
