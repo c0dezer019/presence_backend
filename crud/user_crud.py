@@ -19,22 +19,28 @@ def get_user(user_id):
 
 
 def add_user(**data):
+
     user_data = data.get('data')[0]
     server_data = data.get('data')[1]
     user = User.query.filter_by(user_id = user_data['user_id']).first()
     server = Server.query.filter_by(server_id = server_data['server_id']).first()
 
     if not user:
-        if server:
+        try:
             user = User(**data.get('data')[0])
 
             server.users.append(user)
             db.session.add(user)
             db.session.commit()
 
-            return jsonify(user.as_dict())
+        except ValueError:
+            return f'Server with id #{server_data["server_id"]} not found.', 404
+
+        except AttributeError:
+            return 'An association error has occurred.', 400
+
         else:
-            return "Bot was provided with incorrect server data."
+            return jsonify(user.as_dict())
     else:
         server.users.append(user)
         db.session.add(user)

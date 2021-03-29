@@ -38,11 +38,11 @@ def server_index():
         raise Exception('That method isn\'t allowed here.')
 
 
-@bot.route('/servers/<int:server_id>', methods = ['GET', 'PUT', 'DELETE'])
+@bot.route('/servers/<int:server_id>', methods = ['GET', 'PATCH', 'DELETE'])
 def manage_server(server_id):
     if request.method == 'GET':
         return get_server(server_id)
-    elif request.method == 'PUT':
+    elif request.method == 'PATCH':
         return update_server(server_id, **request.get_json())
     elif request.method == 'DELETE':
         return remove_server(server_id)

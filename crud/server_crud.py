@@ -3,47 +3,85 @@ from main.models import db
 from main.models import Server
 
 
-def get_all_servers():
-    all_servers = Server.query.all()
-    results = [server.as_dict() for server in all_servers]
+# *      * #
+#  Create  #
+# *      * #
+def add_server(**kwargs):
+    try:
+        new_server = Server(**kwargs)
+        db.session.add(new_server)
+        db.session.commit()
 
-    return jsonify(results)
+        return jsonify(new_server.as_dict())
+
+    except Exception:
+        raise Exception('Something went wrong while adding new server.')
+
+
+# *         * #
+#   Retrieve  #
+# *         * #
+def get_all_servers():
+    try:
+        all_servers = Server.query.all()
+        results = [server.as_dict() for server in all_servers]
+
+    except ValueError:
+        raise Exception('No data exists in the database.')
+
+    else:
+        return jsonify(results)
 
 
 def get_server(server_id):
-    server = Server.query.get(server_id)
+    try:
+        server = Server.query.filter_by(server_id = server_id).first()
 
-    if server:
         return jsonify(server.as_dict())
-    else:
-        raise Exception(f'No server at id: {server_id}')
+
+    except ValueError:
+        return f'Could\'nt find server at id #{server_id}', 404
+
+    except AttributeError:
+        raise Exception('Test')
 
 
-def add_server(**kwargs):
-    new_server = Server(**kwargs)
-    db.session.add(new_server)
-    db.session.commit()
+# *      * #
+#  Update  #
+# *      * #
+def update_server(server_id, **data):
+    try:
+        server = Server.query.filter_by(server_id = server_id).first()
 
-    return jsonify(new_server.as_dict())
-
-
-def update_server(server_id, **update_values):
-    server = Server.query.get(server_id)
-
-    if server:
-        for k, v in enumerate(update_values.items()):
+        for k, v in data.items():
             setattr(server, k, v)
-
         db.session.commit()
 
-        return jsonify(server.as_dict())
-    else:
-        raise Exception(f'No server at id {server_id}')
-
-
-def remove_server(**kwargs):
-    try:
-        server = Server.query.filter_by(**kwargs)
-        db.session.remove(server)
     except AttributeError:
-        raise Exception(f'No server at id {kwargs["id"]}')
+        raise Exception('Tried passing incorrect attribute to server.')
+
+    except ValueError:
+        return f'No server found with id #{data["server_id"]}.', 404
+
+    except TypeError:
+        raise Exception('Bot tried to do something obscene with an object.')
+
+    else:
+        return f'Server name {server.name} with id #{server.server_id} successfully updated.', 200
+
+
+# *      * #
+#  Delete  #
+# *      * #
+def remove_server(server_id):
+    try:
+        server = Server.query.filter_by(server_id = server_id).first()
+
+        db.session.delete(server)
+        db.session.commit()
+
+    except ValueError:
+        raise Exception(f'No server at id {server.server_id}')
+
+    else:
+        return f'Server name {server.name} with id #{server.server_id} successfully deleted.', 200
