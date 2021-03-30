@@ -6,11 +6,17 @@ from crud.server_crud import add_server, get_server, get_all_servers, update_ser
 bot = Blueprint('bot', __name__, url_prefix = '/bot')
 
 
-@bot.route('/users', methods = ['POST', 'GET'])
+@bot.route('/users', methods = ['GET'])
 def user_index():
     if request.method == 'GET':
         return get_all_users()
-    elif request.method == 'POST':
+    else:
+        raise Exception('That method isn\'t allowed here.')
+
+
+@bot.route('/users/add', methods = ['POST'])
+def create_user():
+    if request.method == 'POST':
         return add_user(data = request.get_json())
     else:
         raise Exception('That method isn\'t allowed here.')
