@@ -1,6 +1,7 @@
 from flask import jsonify
 from main.models import db
 from main.models import Server
+import jsonify
 
 
 # *      * #
@@ -36,14 +37,11 @@ def get_all_servers():
 def get_server(server_id):
     try:
         server = Server.query.filter_by(server_id = server_id).first()
-
-        return jsonify(server.as_dict())
-
+        return jsonify(server.as_dict()), 200
     except ValueError:
-        return f'Could\'nt find server at id #{server_id}', 404
-
+        return 'Could not retrieve specified server.', 404
     except AttributeError:
-        raise Exception('Test')
+        return 'Tried working with an improper datatype', 400
 
 
 # *      * #

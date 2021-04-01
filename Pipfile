@@ -12,6 +12,7 @@ python-dotenv = "*"
 pytz = "*"
 psycopg2-binary = "*"
 wheel = "*"
+jsonify = "*"
 
 [dev-packages]
 flask-testing = "*"
