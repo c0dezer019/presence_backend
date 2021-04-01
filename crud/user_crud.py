@@ -20,21 +20,19 @@ def get_user(user_id):
 
 def add_user(**data):
 
-    user_data = data.get('data')[0]
-    server_data = data.get('data')[1]
-    user = User.query.filter_by(user_id = user_data['user_id']).first()
-    server = Server.query.filter_by(server_id = server_data['server_id']).first()
+    user = User.query.filter_by(user_id = data['user_id']).first()
+    server = Server.query.filter_by(server_id = data['server_id']).first()
 
     if not user:
         try:
-            user = User(**data.get('data')[0])
+            user = User(user_id = data['user_id'], username = data['username'])
 
             server.users.append(user)
             db.session.add(user)
             db.session.commit()
 
         except ValueError:
-            return f'Server with id #{server_data["server_id"]} not found.', 404
+            return f'Server with id #{data["server_id"]} not found.', 404
 
         except AttributeError:
             return 'An association error has occurred.', 400
