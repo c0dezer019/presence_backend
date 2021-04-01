@@ -17,7 +17,7 @@ def user_index():
 @bot.route('/users/add', methods = ['POST'])
 def create_user():
     if request.method == 'POST':
-        return add_user(data = request.get_json())
+        return add_user(**request.get_json())
     else:
         raise Exception('That method isn\'t allowed here.')
 
@@ -34,11 +34,17 @@ def manage_user(user_id):
         raise Exception('That method isn\'t allowed here.')
 
 
-@bot.route('/servers', methods = ['POST', 'GET'])
+@bot.route('/servers', methods = ['GET'])
 def server_index():
     if request.method == 'GET':
         return get_all_servers()
-    elif request.method == 'POST':
+    else:
+        raise Exception('That method isn\'t allowed here.')
+
+
+@bot.route('servers/add', methods = ['POST'])
+def create_server():
+    if request.method == 'POST':
         return add_server(**request.get_json())
     else:
         raise Exception('That method isn\'t allowed here.')
@@ -46,6 +52,7 @@ def server_index():
 
 @bot.route('/servers/<int:server_id>', methods = ['GET', 'PATCH', 'DELETE'])
 def manage_server(server_id):
+    print(server_id)
     if request.method == 'GET':
         return get_server(server_id)
     elif request.method == 'PATCH':
