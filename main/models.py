@@ -29,7 +29,7 @@ class User(db.Model):
     __tablename__ = 'users'
 
     id = db.Column(db.Integer, primary_key = True, nullable = False)
-    user_id = db.Column(db.Integer, nullable = False, unique = True)
+    user_id = db.Column(db.BigInteger, nullable = False, unique = True)
     username = db.Column(db.String, unique = True, nullable = False)
     last_activity = db.Column(db.String, server_default = 'None')
     last_activity_loc = db.Column(db.String, server_default = 'None')
@@ -51,11 +51,12 @@ class Server(db.Model):
     __tablename__ = 'servers'
 
     id = db.Column(db.Integer, primary_key = True)
-    server_id = db.Column(db.Integer, nullable = False, unique = True)
+    server_id = db.Column(db.BigInteger, nullable = False, unique = True)
     name = db.Column(db.String, nullable = False)
     last_activity = db.Column(db.String, server_default = 'None')
     last_activity_ts = db.Column(db.DateTime(timezone = True), default = datetime(1970, 1, 1, 0, 0))
     status = db.Column(db.String, nullable = False, server_default = 'new')
+    settings = db.Column(db.JSON, default = {})
     users = db.relationship(User, secondary = user_server_association, lazy = 'subquery',
                             backref = db.backref('servers', lazy = True))
     date_added = db.Column(db.DateTime(timezone = True), default = datetime.now(timezone('US/Central')))
