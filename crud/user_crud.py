@@ -52,7 +52,10 @@ def update_user(user_id, **data):
 
     if user:
         for k, v in data.items():
-            setattr(user, k, v)
+            if k != 'act_timestamp':
+                setattr(user, k, v)
+            else:
+                setattr(user, k, v.fromisoformat())
 
         db.session.commit()
 

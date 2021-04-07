@@ -52,7 +52,6 @@ def create_server():
 
 @bot.route('/servers/<int:server_id>', methods = ['GET', 'PATCH', 'DELETE'])
 def manage_server(server_id):
-    print(server_id)
     if request.method == 'GET':
         return get_server(server_id)
     elif request.method == 'PATCH':

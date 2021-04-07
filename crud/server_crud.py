@@ -13,7 +13,7 @@ def add_server(**kwargs):
         db.session.add(new_server)
         db.session.commit()
 
-        return jsonify(new_server.as_dict())
+        return '', 200
 
     except Exception:
         raise Exception('Something went wrong while adding new server.')
