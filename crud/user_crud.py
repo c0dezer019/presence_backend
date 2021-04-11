@@ -1,3 +1,4 @@
+from datetime import datetime
 from flask import jsonify
 from main.models import db
 from main.models import User, Server
@@ -52,11 +53,13 @@ def update_user(user_id, **data):
 
     if user:
         for k, v in data.items():
-            if k != 'act_timestamp':
+            if k != 'last_activity_ts':
                 setattr(user, k, v)
             else:
-                setattr(user, k, v.fromisoformat())
+                v = datetime.fromisoformat(v)
+                user.update(v)
 
+        db.session.flush()
         db.session.commit()
 
         return jsonify(user.as_dict())
