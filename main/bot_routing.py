@@ -1,62 +1,62 @@
 from flask import Blueprint, jsonify, request
-from crud.user_crud import add_user, get_user, get_all_users, update_user, remove_user
-from crud.server_crud import add_server, get_server, get_all_servers, update_server, remove_server
+from crud.member_crud import add_member, get_member, get_all_members, update_member, remove_member
+from crud.guild_crud import add_guild, get_guild, get_all_guilds, update_guild, remove_guild
 
 
 bot = Blueprint('bot', __name__, url_prefix = '/bot')
 
 
-@bot.route('/users', methods = ['GET'])
+@bot.route('/members', methods = ['GET'])
 def user_index():
     if request.method == 'GET':
-        return get_all_users()
+        return get_all_members()
     else:
         raise Exception('That method isn\'t allowed here.')
 
 
-@bot.route('/users/add', methods = ['POST'])
+@bot.route('/members/add', methods = ['POST'])
 def create_user():
     if request.method == 'POST':
-        return add_user(**request.get_json())
+        return add_member(**request.get_json())
     else:
         raise Exception('That method isn\'t allowed here.')
 
 
-@bot.route('/users/<int:user_id>', methods = ['GET', 'PATCH', 'DELETE'])
-def manage_user(user_id):
+@bot.route('/members/<int:member_id>', methods = ['GET', 'PATCH', 'DELETE'])
+def manage_user(member_id):
     if request.method == 'GET':
-        return get_user(user_id)
+        return get_member(member_id)
     elif request.method == 'PATCH':
-        return update_user(user_id, **request.get_json())
+        return update_member(member_id, **request.get_json())
     elif request.method == 'DELETE':
-        return remove_user(user_id, **request.get_json())
+        return remove_member(member_id, **request.get_json())
     else:
         raise Exception('That method isn\'t allowed here.')
 
 
-@bot.route('/servers', methods = ['GET'])
-def server_index():
+@bot.route('/guilds', methods = ['GET'])
+def guild_index():
     if request.method == 'GET':
-        return get_all_servers()
+        return get_all_guilds()
     else:
         raise Exception('That method isn\'t allowed here.')
 
 
-@bot.route('servers/add', methods = ['POST'])
-def create_server():
+@bot.route('guilds/add', methods = ['POST'])
+def create_guild():
     if request.method == 'POST':
-        return add_server(**request.get_json())
+        return add_guild(**request.get_json())
     else:
         raise Exception('That method isn\'t allowed here.')
 
 
-@bot.route('/servers/<int:server_id>', methods = ['GET', 'PATCH', 'DELETE'])
-def manage_server(server_id):
+@bot.route('/guilds/<int:guild_id>', methods = ['GET', 'PATCH', 'DELETE'])
+def manage_guild(guild_id):
     if request.method == 'GET':
-        return get_server(server_id)
+        return get_guild(guild_id)
     elif request.method == 'PATCH':
-        return update_server(server_id, **request.get_json())
+        return update_guild(guild_id, **request.get_json())
     elif request.method == 'DELETE':
-        return remove_server(server_id)
+        return remove_guild(guild_id)
     else:
         raise Exception('That method isn\'t allowed here.')

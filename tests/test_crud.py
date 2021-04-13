@@ -1,5 +1,5 @@
-import crud.server_crud as scrud
-import crud.user_crud as ucrud
+import crud.guild_crud as scrud
+import crud.member_crud as ucrud
 from datetime import datetime
 
 

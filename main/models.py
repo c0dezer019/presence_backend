@@ -20,13 +20,13 @@ db = PSQLAlchemy()
 user_server_association = db.Table(
     'associationTable',
     db.Model.metadata,
-    db.Column('user_id', db.Integer, db.ForeignKey('users.id'), primary_key = True),
-    db.Column('server_id', db.Integer, db.ForeignKey('servers.id'), primary_key = True)
+    db.Column('member_id', db.Integer, db.ForeignKey('members.id'), primary_key = True),
+    db.Column('guild_id', db.Integer, db.ForeignKey('guilds.id'), primary_key = True)
 )
 
 
-class User(db.Model):
-    __tablename__ = 'users'
+class Member(db.Model):
+    __tablename__ = 'members'
 
     id = db.Column(db.Integer, primary_key = True, nullable = False)
     user_id = db.Column(db.BigInteger, nullable = False, unique = True)
@@ -51,18 +51,18 @@ class User(db.Model):
         self.last_activity_ts = new_timestamp
 
 
-class Server(db.Model):
-    __tablename__ = 'servers'
+class Guild(db.Model):
+    __tablename__ = 'guilds'
 
     id = db.Column(db.Integer, primary_key = True)
-    server_id = db.Column(db.BigInteger, nullable = False, unique = True)
+    guild_id = db.Column(db.BigInteger, nullable = False, unique = True)
     name = db.Column(db.String, nullable = False)
     last_activity = db.Column(db.String, server_default = 'None')
     last_activity_ts = db.Column(db.DateTime(timezone = True))
     status = db.Column(db.String, nullable = False, server_default = 'new')
-    settings = db.Column(db.JSON, default = {})
-    users = db.relationship(User, secondary = user_server_association, lazy = 'subquery',
-                            backref = db.backref('servers', lazy = True))
+    settings = db.Column(db.JSON, default = { })
+    members = db.relationship(User, secondary = user_server_association, lazy = 'subquery',
+                              backref = db.backref('guilds', lazy = True))
     date_added = db.Column(db.DateTime(timezone = True), default = datetime.now(timezone('US/Central')))
 
     def __repr__(self):
