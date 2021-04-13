@@ -29,7 +29,7 @@ class Member(db.Model):
     __tablename__ = 'members'
 
     id = db.Column(db.Integer, primary_key = True, nullable = False)
-    user_id = db.Column(db.BigInteger, nullable = False, unique = True)
+    member_id = db.Column(db.BigInteger, nullable = False, unique = True)
     username = db.Column(db.String, unique = True, nullable = False)
     admin_access = db.Column(db.Boolean, default = False)
     last_activity = db.Column(db.String, server_default = 'None')
@@ -40,7 +40,7 @@ class Member(db.Model):
     date_added = db.Column(db.DateTime(timezone = True), default = datetime.now(timezone('US/Central')))
 
     def __repr__(self):
-        return f'<User(id = {self.id}, user_id = {self.user_id}, username = {self.username}, ' \
+        return f'<Member(id = {self.id}, user_id = {self.user_id}, username = {self.username}, ' \
                f' last_activity = {self.last_activity}, last_activity_loc = {self.last_activity_loc}, ' \
                f' last_activity_ts = {self.last_activity_ts}), status = {self.status}, date_added = {self.date_added}>'
 
@@ -61,12 +61,12 @@ class Guild(db.Model):
     last_activity_ts = db.Column(db.DateTime(timezone = True))
     status = db.Column(db.String, nullable = False, server_default = 'new')
     settings = db.Column(db.JSON, default = { })
-    members = db.relationship(User, secondary = user_server_association, lazy = 'subquery',
+    members = db.relationship(Member, secondary = user_server_association, lazy = 'subquery',
                               backref = db.backref('guilds', lazy = True))
     date_added = db.Column(db.DateTime(timezone = True), default = datetime.now(timezone('US/Central')))
 
     def __repr__(self):
-        return f'<Server(id = {self.id}, name = {self.name}, last_activity = {self.last_activity},' \
+        return f'<Guild(id = {self.id}, name = {self.name}, last_activity = {self.last_activity},' \
                f' last_activity_ts = {self.last_activity_ts})>'
 
     def as_dict(self):
