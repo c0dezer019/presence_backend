@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, request
 from crud.member_crud import add_member, get_member, get_all_members, update_member, remove_member
 from crud.guild_crud import add_guild, get_guild, get_all_guilds, update_guild, remove_guild
 
