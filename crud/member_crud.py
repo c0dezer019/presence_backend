@@ -13,10 +13,11 @@ def get_all_members():
 
 def get_member(member_id):
     member = Member.query.filter_by(member_id = member_id).first()
+
     if member:
         return jsonify(member.as_dict())
     else:
-        raise Exception(f'No user at id: {member_id}')
+        return f'No member at id: {member_id}', 404
 
 
 def add_member(**data):
@@ -27,12 +28,13 @@ def add_member(**data):
         try:
             member = Member(member_id = data['member_id'], username = data['username'])
 
-            guild.users.append(member)
+            guild.members.append(member)
             db.session.add(member)
+            db.session.flush()
             db.session.commit()
 
         except ValueError:
-            return f'Server with id #{data["guild_id"]} not found.', 404
+            return f'Guild with id #{data["guild_id"]} not found.', 404
 
         except AttributeError:
             return 'An association error has occurred.', 400
@@ -40,7 +42,7 @@ def add_member(**data):
         else:
             return jsonify(member.as_dict())
     else:
-        guild.users.append(member)
+        guild.members.append(member)
         db.session.add(member)
         db.session.commit()
 
@@ -62,11 +64,11 @@ def update_member(member_id, **data):
 
         return jsonify(member.as_dict())
     else:
-        raise Exception(f'No user at id {member_id}')
+        raise Exception(f'No member at id {member_id}')
 
 
 def remove_member(member_id, **data):
-    member = Member.query.filter_by(user_id = member_id).first()
+    member = Member.query.filter_by(member_id = member_id).first()
 
     if member:
         for v in data.keys():
@@ -74,17 +76,17 @@ def remove_member(member_id, **data):
                 guild = Guild.query.filter_by(**data).first()
 
                 if guild:
-                    guild.users.remove(member)
+                    guild.members.remove(member)
                     db.session.commit()
 
-                    return f'User {member.username}(id #{member.member_id}) successfully removed from server' \
-                           f' {guild.name} (id #{guild.server_id}).', 200
+                    return f'Member {member.username}(id #{member.member_id}) successfully removed from guild' \
+                           f' {guild.name} (id #{guild.guild_id}).', 200
                 else:
-                    raise Exception('A valid server was not provided.')
+                    raise Exception('A valid guild id was not provided.')
         else:
             db.session.delete(member)
             db.session.commit()
 
-            return f' User {member.username}(id #{member.user_id}) successfully purged from database.', 200
+            return f'Member {member.username}(id #{member.member_id}) successfully purged from database.', 200
     else:
         raise Exception(f'Nothing found with the args: {data}')
