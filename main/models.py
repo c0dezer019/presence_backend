@@ -30,7 +30,8 @@ class Member(db.Model):
 
     id = db.Column(db.Integer, primary_key = True, nullable = False)
     member_id = db.Column(db.BigInteger, nullable = False, unique = True)
-    username = db.Column(db.String, unique = True, nullable = False)
+    username = db.Column(db.String, nullable = False, unique = True)
+    nickname = db.Column(db.String, nullable = True, unique = False)
     admin_access = db.Column(db.Boolean, default = False)
     last_activity = db.Column(db.String, server_default = 'None')
     last_activity_loc = db.Column(db.String, server_default = 'None')

@@ -26,7 +26,7 @@ def add_member(**data):
 
     if not member:
         try:
-            member = Member(member_id = data['member_id'], username = data['username'])
+            member = Member(member_id = data['member_id'], username = data['username'], nickname = data['nickname'])
 
             guild.members.append(member)
             db.session.add(member)
