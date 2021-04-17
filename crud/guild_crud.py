@@ -13,7 +13,7 @@ def add_guild(**kwargs):
         db.session.add(new_guild)
         db.session.commit()
 
-        return '', 200
+        return 'Guild successfully added', 200
 
     except Exception:
         raise Exception('Something went wrong while adding new guild.')
@@ -36,10 +36,13 @@ def get_all_guilds():
 
 def get_guild(guild_id):
     guild = Guild.query.filter_by(guild_id = guild_id).first()
-    guild_dict = guild.as_dict()
-    guild_dict['last_activity_ts'] = guild_dict['last_activity_ts'].isoformat()
 
     if guild:
+        guild_dict = guild.as_dict()
+
+        if guild_dict['last_activity_ts'] is not None:
+            guild_dict['last_activity_ts'] = guild_dict['last_activity_ts'].isoformat()
+
         return jsonify(guild_dict)
     else:
         return f'Guild with id {guild_id} not found.', 404
