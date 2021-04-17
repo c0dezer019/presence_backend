@@ -1,7 +1,7 @@
+from datetime import datetime
 from flask import jsonify
 from main.models import db
 from main.models import Guild
-import jsonify
 
 
 # *      * #
@@ -35,15 +35,14 @@ def get_all_guilds():
 
 
 def get_guild(guild_id):
-    try:
-        guild = Guild.query.filter_by(guild_id = guild_id).first()
-        return jsonify(guild.as_dict()), 200
+    guild = Guild.query.filter_by(guild_id = guild_id).first()
+    guild_dict = guild.as_dict()
+    guild_dict['last_activity_ts'] = guild_dict['last_activity_ts'].isoformat()
 
-    except ValueError:
-        return 'Could not retrieve specified guild.', 404
-
-    except AttributeError:
-        return 'Tried working with an improper datatype', 400
+    if guild:
+        return jsonify(guild_dict)
+    else:
+        return f'Guild with id {guild_id} not found.', 404
 
 
 # *      * #
@@ -54,6 +53,9 @@ def update_guild(guild_id, **data):
         guild = Guild.query.filter_by(guild_id = guild_id).first()
 
         for k, v in data.items():
+            if k == 'last_activity_ts':
+                v = datetime.fromisoformat(v)
+
             setattr(guild, k, v)
         db.session.commit()
 
