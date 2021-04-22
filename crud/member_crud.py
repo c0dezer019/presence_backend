@@ -15,7 +15,12 @@ def get_member(member_id):
     member = Member.query.filter_by(member_id = member_id).first()
 
     if member:
-        return jsonify(member.as_dict())
+        member_dict = member.as_dict()
+
+        if member_dict['last_activity_ts'] is not None:
+            member_dict['last_activity_ts'] = member_dict['last_activity_ts'].isoformat()
+
+        return jsonify(member_dict)
     else:
         return f'No member at id: {member_id}', 404
 
