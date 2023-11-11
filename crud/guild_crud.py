@@ -1,92 +1,142 @@
-from datetime import datetime
-from flask import jsonify
-from main.models import db
-from main.models import Guild
+from arrow import get
+from core.models import db
+from core.models import Guild
 
 
-# *      * #
-#  Create  #
-# *      * #
-def add_guild(**kwargs):
+def resolve_create_guild(obj, info, **kwargs):
     try:
-        new_guild = Guild(**kwargs)
-        db.session.add(new_guild)
+        guild = Guild(**kwargs)
+
+        db.session.add(guild)
         db.session.commit()
 
-        return 'Guild successfully added', 200
+        payload = {
+            'code': 200,
+            'guild': guild.as_dict()
+        }
 
-    except Exception:
-        raise Exception('Something went wrong while adding new guild.')
+    except ValueError as e:
+        payload = {
+            'code': 400,
+            'errors': ['You stuck up, half-witted, scruffy-looking nerf herder! You provided me with incorrect data!',
+                       str(e)]
+        }
+
+    return payload
 
 
-# *         * #
-#   Retrieve  #
-# *         * #
-def get_all_guilds():
+def resolve_guilds(obj, info):
     try:
-        all_guilds = Guild.query.all()
-        results = [guild.as_dict() for guild in all_guilds]
+        guilds = [guild.as_dict() for guild in Guild.query.all()]
 
-    except ValueError:
-        raise Exception('No data exists in the database.')
+        if guilds:
+            payload = {
+                'code': 200,
+                'guilds': guilds
+            }
+        else:
+            payload = {
+                'code': 404,
+                'errors': ['No guilds could be found.']
+            }
 
-    else:
-        return jsonify(results)
+    except AttributeError as e:
+        payload = {
+            'code': 404,
+            'errors': ['No guilds could be found', str(e)]
+        }
+
+    except Exception as error:
+        payload = {
+            'code': 500,
+            'errors': str(error)
+        }
+
+    return payload
 
 
-def get_guild(guild_id):
-    guild = Guild.query.filter_by(guild_id = guild_id).first()
+def resolve_guild(obj, info, guild_id):
+    try:
+        guild = Guild.query.filter_by(guild_id = guild_id).first()
 
-    if guild:
-        guild_dict = guild.as_dict()
+        payload = {
+            'code': 200,
+            'guild': guild.as_dict(),
+        }
 
-        if guild_dict['last_activity_ts'] is not None:
-            guild_dict['last_activity_ts'] = guild_dict['last_activity_ts'].isoformat()
+    except AttributeError as e:
+        payload = {
+            'code': 404,
+            'errors': [f'Guild matching id {guild_id} cannot be found.', str(e)],
+        }
 
-        return jsonify(guild_dict)
-    else:
-        return f'Guild with id {guild_id} not found.', 404
+    except ValueError as e:
+        payload = {
+            'code': 400,
+            'errors': [f'You stuck up, half-witted, scruffy-looking nerf herder! You provided me with incorrect data!',
+                       str(e)],
+        }
+
+    return payload
 
 
-# *      * #
-#  Update  #
-# *      * #
-def update_guild(guild_id, **data):
+def resolve_update_guild(obj, info, guild_id, **data):
     try:
         guild = Guild.query.filter_by(guild_id = guild_id).first()
 
         for k, v in data.items():
             if k == 'last_activity_ts':
-                v = datetime.fromisoformat(v)
+                v = get(v).to('US/Central').datetime
 
             setattr(guild, k, v)
+
+        db.session.add(guild)
         db.session.commit()
 
-    except AttributeError:
-        raise Exception('Tried passing incorrect attribute to guild.')
+        payload = {
+            'code': 200,
+            'success_msg': f'Guild matching id {guild_id} has been modified.',
+            'guild': guild.as_dict()
+        }
 
-    except ValueError:
-        return f'No guild found with id #{data["guild_id"]}.', 404
+    except AttributeError as e:
+        payload = {
+            'code': 404,
+            'errors': [f'Guild matching id {guild_id} was unable to be found.', str(e)],
+        }
 
-    except TypeError:
-        raise Exception('Bot tried to do something obscene with an object.')
+    except ValueError as e:
+        payload = {
+            'code': 400,
+            'errors': [f'You stuck up, half-witted, scruffy-looking nerf herder! You provided me with incorrect data!',
+                       str(e)]
+        }
 
-    else:
-        return f'Guild name {guild.name} with id #{guild.guild_id} successfully updated.', 200
+    except TypeError as e:
+        payload = {
+            'code': 500,
+            'errors': ['Bot tried to do something obscene with an object.', str(e)]
+        }
+
+    return payload
 
 
-# *      * #
-#  Delete  #
-# *      * #
-def remove_guild(guild_id):
+def resolve_delete_guild(obj, info, guild_id):
     try:
         guild = Guild.query.filter_by(guild_id = guild_id).first()
 
         db.session.delete(guild)
         db.session.commit()
 
-    except ValueError:
-        raise Exception(f'No guild at id {guild.guild_id}')
+        payload = {
+            'code': 200,
+            'success_msg': f'Guild matching id {guild_id} has successfully been deleted.',
+        }
 
-    else:
-        return f'Guild name {guild.name} with id #{guild.guild_id} successfully deleted.', 200
+    except AttributeError as e:
+        payload = {
+            'code': 404,
+            'errors': [f'Guild matching id {guild_id} could not be found.', str(e)]
+        }
+
+    return payload

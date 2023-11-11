@@ -1,4 +1,3 @@
-import crud.guild_crud as scrud
 import crud.member_crud as ucrud
 from datetime import datetime
 
@@ -21,6 +20,6 @@ def test_get_all_user():
             'date_added': datetime(2020, 4, 3, 2, 45),
         }
     ]
-    user = ucrud.get_all_users()
+    user = ucrud.resolve_members()
 
     assert user == expected_results
