@@ -61,7 +61,7 @@ def resolve_guild(obj, info, guild_id):
         payload = {
             "code": 400,
             "errors": [
-                f"You stuck up, half-witted, scruffy-looking nerf herder! You provided me with incorrect data!",
+                "You stuck up, half-witted, scruffy-looking nerf herder! You provided me with incorrect data!",
                 str(e),
             ],
         }

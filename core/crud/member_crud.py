@@ -62,8 +62,7 @@ def resolve_members():
     return payload
 
 
-def resolve_member(member_id):
-    print(member_id)
+def resolve_member(obj, info, member_id):
     try:
         member = Member.query.filter_by(member_id = member_id).first()
 

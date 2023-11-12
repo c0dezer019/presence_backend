@@ -22,10 +22,13 @@ def create_db_url(mode):
     return f'postgresql://{user}:{password}@{host}:{port}/{db}'
 
 
-class BaseConfiguration(object):
+class BaseConfig(object):
+    TESTING = False
+
+
+class DevConfig(BaseConfig):
     DEBUG = False
     MODE = 'development'
-    TESTING = False
     SECRET = getenv('SECRET')
     SQLALCHEMY_DATABASE_URI = create_db_url('development')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
@@ -33,7 +36,7 @@ class BaseConfiguration(object):
     HASH_ROUNDS = 100000
 
 
-class TestConfiguration(BaseConfiguration):
+class TestConfig(BaseConfig):
     DEBUG = True
     MODE = 'testing'
     TESTING = True
@@ -43,7 +46,7 @@ class TestConfiguration(BaseConfiguration):
     HASH_ROUNDS = 1
 
 
-class ProductionConfiguration(BaseConfiguration):
+class ProductionConfig(BaseConfig):
     MODE = 'production'
     SQLALCHEMY_DATABASE_URI = create_db_url('production')
     SQLALCHEMY_TRACK_MODIFICATIONS = False

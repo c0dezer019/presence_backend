@@ -5,8 +5,6 @@ from ariadne import (
     load_schema_from_path,
     make_executable_schema,
 )
-from ariadne.explorer import ExplorerGraphiQL
-
 from flask import Blueprint, jsonify, request
 
 from ..crud.guild_crud import (
@@ -40,15 +38,10 @@ mutation.set_field("createMember", resolve_create_member)
 mutation.set_field("updateMember", resolve_update_member)
 mutation.set_field("deleteMember", resolve_delete_member)
 
-bot = Blueprint("bot", __name__, url_prefix="/bot")
+bot = Blueprint("bot", __name__)
 schema = make_executable_schema(
     type_defs, query, mutation, convert_names_case=True
 )
-explorer_html = ExplorerGraphiQL().html(None)
-
-@bot.route("/graphql/explore", methods=["GET", "POST"])
-def explore():
-    return explorer_html, 200
 
 
 @bot.route("/graphql", methods=["POST"])
@@ -58,6 +51,7 @@ def server():
         schema,
         data,
         context_value=request,
+        debug=True
     )
 
     status_code = 200 if success else 400
