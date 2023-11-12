@@ -103,7 +103,7 @@ type Mutation {
         user_tag: Int!,
         nickname: String,
         flags: [String]
-    ): Member!
+    ): MemberResult!
 
     updateMember(
         member_id: BigInt!,

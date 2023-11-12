@@ -16,6 +16,7 @@ ariadne = "*"
 pytz = "*"
 arrow = "*"
 uvicorn = {extras = ["standard"], version = "*"}
+asgiref = "*"
 
 [dev-packages]
 flask-testing = "*"

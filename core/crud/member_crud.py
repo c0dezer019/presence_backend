@@ -63,12 +63,13 @@ def resolve_members():
 
 
 def resolve_member(member_id):
+    print(member_id)
     try:
         member = Member.query.filter_by(member_id = member_id).first()
 
         payload = {
             'code': 200,
-            'member': member.as_dict(),
+            'member': member.__dict__,
         }
 
     except AttributeError as e:

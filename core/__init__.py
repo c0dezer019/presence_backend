@@ -1,7 +1,12 @@
+from unittest.mock import Base
+# Standard modules
+import os
+
+# Third party modules
+from asgiref.wsgi import WsgiToAsgi
 from dotenv import load_dotenv
 from flask import Flask
 from pathlib import Path
-import os
 
 env_path = Path('', '../.env')
 load_dotenv(dotenv_path = env_path)
@@ -18,6 +23,7 @@ def create_app():
         flask_app.config.from_object('core.config.BaseConfiguration')
 
     from core.models import db
+
     db.init_app(flask_app)
 
     try:
@@ -25,7 +31,9 @@ def create_app():
     except OSError:
         pass
 
-    from core.blueprint import bot
+    from core.graphql.routing import bot
     flask_app.register_blueprint(bot)
 
-    return flask_app
+    asgi_app = WsgiToAsgi(flask_app)
+
+    return asgi_app

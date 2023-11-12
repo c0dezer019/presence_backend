@@ -1,28 +1,22 @@
 from dotenv import load_dotenv
-from pathlib import Path
 from os import getenv
 
-env_path = Path('', '../.env')
-load_dotenv(dotenv_path = env_path)
-
+load_dotenv()
 
 def create_db_url(mode):
     db = getenv('DB')
     user = getenv('USER')
-    password = getenv('PASS')
+    password = getenv('PASSWORD')
     host = getenv('HOST')
     port = getenv('PORT')
 
-    if mode == 'development':
-        db = getenv('DB')
-
-    elif mode == 'testing':
+    if mode == 'testing':
         db = getenv('T_DB')
 
     elif mode == 'production':
         db = getenv('CP_DB')
         user = getenv('CP_USER')
-        password = getenv('CP_PASS')
+        password = getenv('CP_PASSWORD')
         host = getenv('CP_HOST')
 
     return f'postgresql://{user}:{password}@{host}:{port}/{db}'
