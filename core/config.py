@@ -1,25 +1,31 @@
-from dotenv import load_dotenv
 from os import getenv
+
+from dotenv import load_dotenv
+from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.ext.declarative import declarative_base
 
 load_dotenv()
 
+db = SQLAlchemy(model_class=declarative_base())
+
+
 def create_db_url(mode):
-    db = getenv('DB')
-    user = getenv('USER')
-    password = getenv('PASSWORD')
-    host = getenv('HOST')
-    port = getenv('PORT')
+    db = getenv("DB")
+    user = getenv("USER")
+    password = getenv("PASSWORD")
+    host = getenv("HOST")
+    port = getenv("PORT")
 
-    if mode == 'testing':
-        db = getenv('T_DB')
+    if mode == "testing":
+        db = getenv("T_DB")
 
-    elif mode == 'production':
-        db = getenv('CP_DB')
-        user = getenv('CP_USER')
-        password = getenv('CP_PASSWORD')
-        host = getenv('CP_HOST')
+    elif mode == "production":
+        db = getenv("CP_DB")
+        user = getenv("CP_USER")
+        password = getenv("CP_PASSWORD")
+        host = getenv("CP_HOST")
 
-    return f'postgresql://{user}:{password}@{host}:{port}/{db}'
+    return f"postgresql://{user}:{password}@{host}:{port}/{db}"
 
 
 class BaseConfig(object):
@@ -28,9 +34,9 @@ class BaseConfig(object):
 
 class DevConfig(BaseConfig):
     DEBUG = False
-    MODE = 'development'
-    SECRET = getenv('SECRET')
-    SQLALCHEMY_DATABASE_URI = create_db_url('development')
+    MODE = "development"
+    SECRET = getenv("SECRET")
+    SQLALCHEMY_DATABASE_URI = create_db_url("development")
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ECHO = True
     HASH_ROUNDS = 100000
@@ -38,16 +44,16 @@ class DevConfig(BaseConfig):
 
 class TestConfig(BaseConfig):
     DEBUG = True
-    MODE = 'testing'
+    MODE = "testing"
     TESTING = True
-    SQLALCHEMY_DATABASE_URI = create_db_url('testing')
+    SQLALCHEMY_DATABASE_URI = create_db_url("testing")
     SQLALCHEMY_TRACK_MODIFICATIONS = True
     WTF_CSRF_ENABLED = False
     HASH_ROUNDS = 1
 
 
 class ProductionConfig(BaseConfig):
-    MODE = 'production'
-    SQLALCHEMY_DATABASE_URI = create_db_url('production')
+    MODE = "production"
+    SQLALCHEMY_DATABASE_URI = create_db_url("production")
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ECHO = False

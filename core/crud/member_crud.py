@@ -1,10 +1,13 @@
 from arrow import get
-from core.models import db
-from core.models import Member, Guild
+
+from ..config import db
+from ..models.member import Member
+from ..models.guild import Guild
 
 
-def resolve_create_member(guild_id, **data):
+def resolve_create_member(obj, info, **data):
     try:
+        guild_id = data["guild_id"]
         guild = Guild.query.filter_by(guild_id = guild_id).first()
         member = Member(**data)
 

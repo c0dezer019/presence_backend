@@ -20,9 +20,10 @@ def create_app():
     elif os.getenv('MODE') == 'development':
         flask_app.config.from_object('core.config.DevConfig')
 
-    from core.models import db
+    from core.config import db
 
     db.init_app(flask_app)
+
 
     try:
         os.makedirs(flask_app.instance_path)
