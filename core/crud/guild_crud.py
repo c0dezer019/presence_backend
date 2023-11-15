@@ -1,6 +1,6 @@
 from arrow import get
 
-from ..config import db
+from ..config import sql
 from ..models.guild import Guild
 
 
@@ -8,8 +8,8 @@ def resolve_create_guild(obj, info, **kwargs):
     try:
         guild = Guild(**kwargs)
 
-        db.session.add(guild)
-        db.session.commit()
+        sql.session.add(guild)
+        sql.session.commit()
 
         payload = {"code": 200, "guild": guild.as_dict()}
 
@@ -80,8 +80,8 @@ def resolve_update_guild(obj, info, guild_id, **data):
 
             setattr(guild, k, v)
 
-        db.session.add(guild)
-        db.session.commit()
+        sql.session.add(guild)
+        sql.session.commit()
 
         payload = {
             "code": 200,
@@ -117,8 +117,8 @@ def resolve_delete_guild(obj, info, guild_id):
     try:
         guild = Guild.query.filter_by(guild_id=guild_id).first()
 
-        db.session.delete(guild)
-        db.session.commit()
+        sql.session.delete(guild)
+        sql.session.commit()
 
         payload = {
             "code": 200,

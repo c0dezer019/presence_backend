@@ -11,10 +11,10 @@ from sqlalchemy.orm import Mapped, mapped_column
 from arrow import get, now
 from arrow.arrow import Arrow
 
-from ..config import db
+from ..config import sql
 
 
-class Member(db.Model):
+class Member(sql.Model):
     __tablename__ = "members"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, nullable=False)
@@ -35,7 +35,7 @@ class Member(db.Model):
     recent_avgs: Mapped[list[int]] = mapped_column(ARRAY(Integer), default=[])
     # Overall Discord status. Not representative of individual servers.
     status: Mapped[str] = mapped_column(String, nullable=False, server_default="new")
-    date_added: Mapped[Arrow] = mapped_column(db.DateTime(timezone=True), default=now("US/Central").datetime)
+    date_added: Mapped[Arrow] = mapped_column(sql.DateTime(timezone=True), default=now("US/Central").datetime)
 
     def __repr__(self):
         return (

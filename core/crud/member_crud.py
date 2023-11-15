@@ -1,6 +1,6 @@
 from arrow import get
 
-from ..config import db
+from ..config import sql
 from ..models.member import Member
 from ..models.guild import Guild
 
@@ -12,8 +12,8 @@ def resolve_create_member(obj, info, **data):
         member = Member(**data)
 
         guild.members.append(member)
-        db.session.add(member)
-        db.session.commit()
+        sql.session.add(member)
+        sql.session.commit()
 
         payload = {
             'code': 200,
@@ -93,8 +93,8 @@ def resolve_update_member(member_id, **data):
 
             setattr(member, k, v)
 
-        db.session.add(member)
-        db.session.commit()
+        sql.session.add(member)
+        sql.session.commit()
 
         payload = {
             'code': 200,
@@ -126,8 +126,8 @@ def resolve_delete_member(member_id):
     try:
         member = Member.query.filter_by(member_id = member_id).first()
 
-        db.session.delete(member)
-        db.session.commit()
+        sql.session.delete(member)
+        sql.session.commit()
 
         payload = {
             'code': 200,

@@ -12,9 +12,9 @@ from arrow.arrow import Arrow
 
 from .association_tables import member_guild_association
 from .member import Member
-from ..config import db
+from ..config import sql
 
-class Guild(db.Model):
+class Guild(sql.Model):
     __tablename__ = "guilds"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -23,21 +23,21 @@ class Guild(db.Model):
     last_activity: Mapped[str] = mapped_column(String, server_default="None")
     last_active_channel: Mapped[int] = mapped_column(BigInteger, default=0)
     last_active_ts: Mapped[Arrow] = mapped_column(
-        db.DateTime(timezone=True), default=get(datetime(1970, 1, 1, 0, 0)).datetime
+        sql.DateTime(timezone=True), default=get(datetime(1970, 1, 1, 0, 0)).datetime
     )
     idle_times: Mapped[int] = mapped_column(ARRAY(Integer), default=[])
     avg_idle_time: Mapped[int] = mapped_column(Integer, nullable=True, default=0)
     recent_avgs: Mapped[list[int]] = mapped_column(ARRAY(Integer), default=[])
     status: Mapped[str] = mapped_column(String, nullable=False, server_default="new")
     settings: Mapped[dict] = mapped_column(JSON, default={})
-    members = db.relationship(
+    members = sql.relationship(
         Member,
         secondary=member_guild_association,
         lazy="joined",
-        backref=db.backref("guild", lazy=True),
+        backref=sql.backref("guild", lazy=True),
         cascade="all,delete"
     )
-    date_added: Mapped[Arrow] = mapped_column(db.DateTime(timezone=True), default=now("US/Central").datetime)
+    date_added: Mapped[Arrow] = mapped_column(sql.DateTime(timezone=True), default=now("US/Central").datetime)
 
     def __repr__(self):
         return (

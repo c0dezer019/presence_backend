@@ -1,11 +1,11 @@
 from sqlalchemy import Integer, ForeignKey
 
-from ..config import db
+from ..config import sql
 
 
-member_guild_association = db.Table(
+member_guild_association = sql.Table(
     "association_table",
-    db.Model.metadata,
-    db.Column("member_id", Integer, ForeignKey("members.id"), primary_key=True),
-    db.Column("guild_id", Integer, ForeignKey("guilds.id"), primary_key=True),
+    sql.Model.metadata,
+    sql.Column("member_id", Integer, ForeignKey("members.id"), primary_key=True),
+    sql.Column("guild_id", Integer, ForeignKey("guilds.id"), primary_key=True),
 )

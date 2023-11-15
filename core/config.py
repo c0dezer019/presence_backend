@@ -2,30 +2,32 @@ from os import getenv
 
 from dotenv import load_dotenv
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import declarative_base
 
 load_dotenv()
 
-db = SQLAlchemy(model_class=declarative_base())
+sql = SQLAlchemy(model_class=declarative_base())
 
 
 def create_db_url(mode):
-    db = getenv("DB")
-    user = getenv("USER")
-    password = getenv("PASSWORD")
+    database = getenv("DEV_DB")
+    user = getenv("DEV_USER")
+    password = getenv("DEV_PASSWORD")
     host = getenv("HOST")
     port = getenv("PORT")
 
     if mode == "testing":
-        db = getenv("T_DB")
+        database = getenv("TEST_DB")
+        user = getenv("TEST_USER")
+        password = getenv("TEST_PASSWORD")
 
     elif mode == "production":
-        db = getenv("CP_DB")
+        database = getenv("CP_DB")
         user = getenv("CP_USER")
         password = getenv("CP_PASSWORD")
         host = getenv("CP_HOST")
 
-    return f"postgresql://{user}:{password}@{host}:{port}/{db}"
+    return f"postgresql://{user}:{password}@{host}:{port}/{database}"
 
 
 class BaseConfig(object):
@@ -48,6 +50,7 @@ class TestConfig(BaseConfig):
     TESTING = True
     SQLALCHEMY_DATABASE_URI = create_db_url("testing")
     SQLALCHEMY_TRACK_MODIFICATIONS = True
+    SQLALCHEMY_ECHO = True
     WTF_CSRF_ENABLED = False
     HASH_ROUNDS = 1
 
