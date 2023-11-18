@@ -17,10 +17,12 @@ pytz = "*"
 arrow = "*"
 uvicorn = {extras = ["standard"], version = "*"}
 asgiref = "*"
+python-dateutil = "*"
 
 [dev-packages]
 flask-testing = "*"
 pytest = "*"
+pytest-reportlog = "*"
 
 [requires]
 python_version = "3.10"
