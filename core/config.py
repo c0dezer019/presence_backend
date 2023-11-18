@@ -22,10 +22,10 @@ def create_db_url(mode):
         password = getenv("TEST_PASSWORD")
 
     elif mode == "production":
-        database = getenv("CP_DB")
-        user = getenv("CP_USER")
-        password = getenv("CP_PASSWORD")
-        host = getenv("CP_HOST")
+        database = getenv("PROD_DB")
+        user = getenv("PROD_USER")
+        password = getenv("PROD_PASSWORD")
+        host = getenv("PROD_HOST")
 
     return f"postgresql://{user}:{password}@{host}:{port}/{database}"
 
@@ -35,11 +35,11 @@ class BaseConfig(object):
 
 
 class DevConfig(BaseConfig):
-    DEBUG = False
+    DEBUG = True
     MODE = "development"
     SECRET = getenv("SECRET")
     SQLALCHEMY_DATABASE_URI = create_db_url("development")
-    SQLALCHEMY_TRACK_MODIFICATIONS = False
+    SQLALCHEMY_TRACK_MODIFICATIONS = True
     SQLALCHEMY_ECHO = True
     HASH_ROUNDS = 100000
 
