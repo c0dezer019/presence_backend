@@ -1,4 +1,6 @@
-from datetime import datetime
+# Standard modules
+
+# Third party modules
 from sqlalchemy import (
     ARRAY,
     BigInteger,
@@ -9,25 +11,43 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column
 from arrow import get, now
-from arrow.arrow import Arrow
+from datetime import datetime
+from dateutil.tz import gettz
 
-from ..config import sql
+# Internal modules
+from core.config import sql
 
 
 class Member(sql.Model):
-    __tablename__ = "members"
+    """
+    Member _summary_
+
+    _extended_summary_
+
+    Parameters
+    ----------
+    sql : _type_
+        _description_
+
+    Returns
+    -------
+    _type_
+        _description_
+    """
+
+    __tablename__ = "member_shards"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, nullable=False)
     username: Mapped[str] = mapped_column(String, nullable=False)
     discriminator: Mapped[int] = mapped_column(Integer, nullable=False, unique=True)
     member_id: Mapped[int] = mapped_column(BigInteger, nullable=False, unique=True)
-    nickname: Mapped[str] = mapped_column(String, server_default=f"{username}")
+    nickname: Mapped[str] = mapped_column(String, server_default="")
     admin_access: Mapped[bool] = mapped_column(Boolean, default=False)
     last_activity: Mapped[str] = mapped_column(String, server_default="None")
     last_active_server: Mapped[int] = mapped_column(BigInteger, default=0)
     last_active_channel: Mapped[int] = mapped_column(BigInteger, default=0)
-    last_active_ts: Mapped[Arrow] = mapped_column(
-        DateTime(timezone=True), default=get(datetime(1970, 1, 1, 0, 0)).datetime
+    last_active_ts: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=get(datetime(1970, 1, 1, 0, 0), gettz("US/Central")).datetime # type:ignore
     )
     idle_times: Mapped[list[int]] = mapped_column(ARRAY(Integer), default=[])
     # Instant avg like an instant MPG in the car.
@@ -35,9 +55,20 @@ class Member(sql.Model):
     recent_avgs: Mapped[list[int]] = mapped_column(ARRAY(Integer), default=[])
     # Overall Discord status. Not representative of individual servers.
     status: Mapped[str] = mapped_column(String, nullable=False, server_default="new")
-    date_added: Mapped[Arrow] = mapped_column(sql.DateTime(timezone=True), default=now("US/Central").datetime)
+    date_added: Mapped[datetime] = mapped_column(sql.DateTime(timezone=True), default=now(gettz("US/Central")).datetime)
 
     def __repr__(self):
+        """
+        _summary_
+
+        _extended_summary_
+
+        Returns
+        -------
+        _type_
+            _description_
+        """
+
         return (
             f"<Member (id = {self.id}, username = {self.username}, user_tag = {self.discriminator}"
             f"member_id = {self.member_id}, last_activity = {self.last_activity}, "
@@ -49,6 +80,17 @@ class Member(sql.Model):
         )
 
     def as_dict(self):
+        """
+        _summary_
+
+        _extended_summary_
+
+        Returns
+        -------
+        _type_
+            _description_
+        """
+
         member_dict = {c.name: getattr(self, c.name) for c in self.__table__.mapped_columns}  # type: ignore
         member_dict["last_activity_ts"] = member_dict["last_activity_ts"].isoformat()
         member_dict["date_added"] = member_dict["date_added"].isoformat()

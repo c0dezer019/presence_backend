@@ -1,29 +1,20 @@
 from arrow import get
 
-from ..config import sql
-from ..models.member import Member
-from ..models.guild import Guild
+from core.config import sql
+from core.models.member_shard import Member
 
 
 def resolve_create_member(obj, info, **data):
     try:
         guild_id = data["guild_id"]
-        guild = Guild.query.filter_by(guild_id = guild_id).first()
         member = Member(**data)
 
-        guild.members.append(member)
         sql.session.add(member)
         sql.session.commit()
 
         payload = {
             'code': 200,
             'member': member.as_dict(),
-        }
-
-    except AttributeError as e:
-        payload = {
-            'code': 404,
-            'errors': [f'Guild matching id {guild_id} could not be found.', f'{e}']
         }
 
     except ValueError as e:

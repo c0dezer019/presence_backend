@@ -4,7 +4,7 @@ from datetime import datetime
 
 from core.config import sql
 from core.models.guild import Guild
-from core.models.member import Member
+from core.models.member_shard import Member
 
 
 @pytest.fixture(scope="session", autouse=True)
