@@ -19,21 +19,6 @@ from core.config import sql
 
 
 class Member(sql.Model):
-    """
-    Member _summary_
-
-    _extended_summary_
-
-    Parameters
-    ----------
-    sql : _type_
-        _description_
-
-    Returns
-    -------
-    _type_
-        _description_
-    """
 
     __tablename__ = "member_shards"
 
@@ -41,6 +26,7 @@ class Member(sql.Model):
     username: Mapped[str] = mapped_column(String, nullable=False)
     discriminator: Mapped[int] = mapped_column(Integer, nullable=False, unique=True)
     member_id: Mapped[int] = mapped_column(BigInteger, nullable=False, unique=True)
+    guild = sql.relationship("Guild", back_populates="member_shards")
     nickname: Mapped[str] = mapped_column(String, server_default="")
     admin_access: Mapped[bool] = mapped_column(Boolean, default=False)
     last_activity: Mapped[str] = mapped_column(String, server_default="None")
@@ -58,20 +44,10 @@ class Member(sql.Model):
     date_added: Mapped[datetime] = mapped_column(sql.DateTime(timezone=True), default=now(gettz("US/Central")).datetime)
 
     def __repr__(self):
-        """
-        _summary_
-
-        _extended_summary_
-
-        Returns
-        -------
-        _type_
-            _description_
-        """
 
         return (
-            f"<Member (id = {self.id}, username = {self.username}, user_tag = {self.discriminator}"
-            f"member_id = {self.member_id}, last_activity = {self.last_activity}, "
+            f"<Member (id = {self.id}, username = {self.username}, discriminator = {self.discriminator}"
+            f"member_id = {self.member_id}, guild = {self.guild}, last_activity = {self.last_activity}, "
             f"last_active_server = {self.last_active_server}, last_active_channel = "
             f"{self.last_active_channel} last_active_ts = {self.last_active_ts.isoformat()}), "
             f"idle_times = {self.idle_times}, avg_idle_time = {self.avg_idle_time}, "
@@ -80,16 +56,6 @@ class Member(sql.Model):
         )
 
     def as_dict(self):
-        """
-        _summary_
-
-        _extended_summary_
-
-        Returns
-        -------
-        _type_
-            _description_
-        """
 
         member_dict = {c.name: getattr(self, c.name) for c in self.__table__.mapped_columns}  # type: ignore
         member_dict["last_activity_ts"] = member_dict["last_activity_ts"].isoformat()
