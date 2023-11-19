@@ -15,14 +15,14 @@ pytest = "*"
 ariadne = "*"
 pytz = "*"
 arrow = "*"
-uvicorn = {extras = ["standard"], version = "*"}
-asgiref = "*"
 python-dateutil = "*"
+asgiref = "*"
 
 [dev-packages]
 flask-testing = "*"
 pytest = "*"
 pytest-reportlog = "*"
+uvicorn = "*"
 
 [requires]
 python_version = "3.10"
