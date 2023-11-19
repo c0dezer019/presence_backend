@@ -4,8 +4,6 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-flask = "*"
-flask-sqlalchemy = "*"
 sqlalchemy = "*"
 requests = "*"
 python-dotenv = "*"
@@ -17,12 +15,12 @@ pytz = "*"
 arrow = "*"
 python-dateutil = "*"
 asgiref = "*"
+fastapi = "*"
 
 [dev-packages]
 flask-testing = "*"
 pytest = "*"
 pytest-reportlog = "*"
-uvicorn = "*"
 
 [requires]
 python_version = "3.10"

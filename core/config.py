@@ -1,12 +1,10 @@
 from os import getenv
 
 from dotenv import load_dotenv
-from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy.orm import declarative_base
+from sqlalchemy import create_engine
+from sqlalchemy.orm import declarative_base, sessionmaker
 
 load_dotenv()
-
-sql = SQLAlchemy(model_class=declarative_base())
 
 
 def create_db_url(mode):
@@ -30,33 +28,13 @@ def create_db_url(mode):
     return f"postgresql://{user}:{password}@{host}:{port}/{database}"
 
 
-class BaseConfig(object):
-    TESTING = False
+def create_session():
+    engine = create_engine(
+        create_db_url(getenv("MODE")), connect_args={"check_same_thread": False}
+    )
+    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+    return SessionLocal
 
 
-class DevConfig(BaseConfig):
-    DEBUG = True
-    MODE = "development"
-    SECRET = getenv("SECRET")
-    SQLALCHEMY_DATABASE_URI = create_db_url("development")
-    SQLALCHEMY_TRACK_MODIFICATIONS = True
-    SQLALCHEMY_ECHO = True
-    HASH_ROUNDS = 100000
-
-
-class TestConfig(BaseConfig):
-    DEBUG = True
-    MODE = "testing"
-    TESTING = True
-    SQLALCHEMY_DATABASE_URI = create_db_url("testing")
-    SQLALCHEMY_TRACK_MODIFICATIONS = True
-    SQLALCHEMY_ECHO = True
-    WTF_CSRF_ENABLED = False
-    HASH_ROUNDS = 1
-
-
-class ProductionConfig(BaseConfig):
-    MODE = "production"
-    SQLALCHEMY_DATABASE_URI = create_db_url("production")
-    SQLALCHEMY_TRACK_MODIFICATIONS = False
-    SQLALCHEMY_ECHO = False
+Base = declarative_base()
