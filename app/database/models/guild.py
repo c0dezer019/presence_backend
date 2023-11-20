@@ -8,18 +8,19 @@ from datetime import datetime
 from sqlalchemy import (
     ARRAY,
     BigInteger,
+    DateTime,
     Integer,
     JSON,
     String,
 )
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from arrow import get, now
 from dateutil.tz import gettz
 
 # Internal modules
-from core.config import sql
+from app.database.database import Base
 
-class Guild(sql.Model):
+class Guild(Base):
     __tablename__ = "guilds"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -28,20 +29,20 @@ class Guild(sql.Model):
     last_activity: Mapped[str] = mapped_column(String, server_default="None")
     last_active_channel: Mapped[int] = mapped_column(BigInteger, default=0)
     last_active_ts: Mapped[datetime] = mapped_column(
-        sql.DateTime(timezone=True), default=get(datetime(1970, 1, 1, 0, 0), gettz("US/Central")) # type:ignore
+        DateTime(timezone=True), default=get(datetime(1970, 1, 1, 0, 0), gettz("US/Central")) # type:ignore
     )
     idle_times: Mapped[int] = mapped_column(ARRAY(Integer), default=[])
     avg_idle_time: Mapped[int] = mapped_column(Integer, nullable=True, default=0)
     recent_avgs: Mapped[list[int]] = mapped_column(ARRAY(Integer), default=[])
     status: Mapped[str] = mapped_column(String, nullable=False, server_default="new")
     settings: Mapped[dict] = mapped_column(JSON, default={})
-    members = sql.relationship(
+    members = relationship(
         "MemberShard",
         lazy="joined",
         cascade="all,delete",
         back_populates="guilds"
     )
-    date_added: Mapped[datetime] = mapped_column(sql.DateTime(timezone=True), default=now(gettz("US/Central")).datetime)
+    date_added: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now(gettz("US/Central")).datetime)
 
     def __repr__(self):
         return (

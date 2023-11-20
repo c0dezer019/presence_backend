@@ -1,20 +1,23 @@
 import pytest
 
 from datetime import datetime
+from fastapi.testclient import TestClient
 
-from core.config import sql
-from core.models.guild import Guild
-from core.models.member_shard import Member
+from app.database.database import SessionLocal, test_engine
+from app.database.models import Base, Guild, MemberShard
+from main import app
+
+Base.metadata.create_all(bind=test_engine)
 
 
 @pytest.fixture(scope="session", autouse=True)
-def build_db(app):
-    # Check if tables exist.
-    with app.app_context():
-        if sql.engine.dialect.has_table(sql.engine.connect(), "members"):
-            sql.drop_all()
-
-        sql.create_all()
+def db():
+    try:
+        db = SessionLocal()
+        yield db
+    finally:
+        db.close()
+        Base.metadata.drop_all(bind=test_engine)
 
 
 def test_table_creation(app):

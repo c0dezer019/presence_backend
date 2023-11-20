@@ -9,16 +9,16 @@ from sqlalchemy import (
     Integer,
     String,
 )
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from arrow import get, now
 from datetime import datetime
 from dateutil.tz import gettz
 
 # Internal modules
-from core.config import sql
+from app.database.models import Base
 
 
-class Member(sql.Model):
+class MemberShard(Base):
 
     __tablename__ = "member_shards"
 
@@ -26,7 +26,7 @@ class Member(sql.Model):
     username: Mapped[str] = mapped_column(String, nullable=False)
     discriminator: Mapped[int] = mapped_column(Integer, nullable=False, unique=True)
     member_id: Mapped[int] = mapped_column(BigInteger, nullable=False, unique=True)
-    guild = sql.relationship("Guild", back_populates="member_shards")
+    guild = relationship("Guild", back_populates="member_shards")
     nickname: Mapped[str] = mapped_column(String, server_default="")
     admin_access: Mapped[bool] = mapped_column(Boolean, default=False)
     last_activity: Mapped[str] = mapped_column(String, server_default="None")
@@ -41,7 +41,7 @@ class Member(sql.Model):
     recent_avgs: Mapped[list[int]] = mapped_column(ARRAY(Integer), default=[])
     # Overall Discord status. Not representative of individual servers.
     status: Mapped[str] = mapped_column(String, nullable=False, server_default="new")
-    date_added: Mapped[datetime] = mapped_column(sql.DateTime(timezone=True), default=now(gettz("US/Central")).datetime)
+    date_added: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now(gettz("US/Central")).datetime)
 
     def __repr__(self):
 
