@@ -2,7 +2,8 @@ from os import getenv
 
 from dotenv import load_dotenv
 from sqlalchemy import create_engine
-from sqlalchemy.orm import declarative_base, sessionmaker
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
 
 load_dotenv()
 
@@ -28,13 +29,9 @@ def create_db_url(mode):
     return f"postgresql://{user}:{password}@{host}:{port}/{database}"
 
 
-def create_session():
-    engine = create_engine(
-        create_db_url(getenv("MODE")), connect_args={"check_same_thread": False}
-    )
-    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+engine = create_engine(
+    create_db_url("development" if getenv("MODE") == "development" else "production")
+)
+test_engine = create_engine(create_db_url("testing"), poolclass=StaticPool)
 
-    return SessionLocal
-
-
-Base = declarative_base()
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

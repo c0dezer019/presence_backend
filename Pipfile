@@ -14,8 +14,8 @@ ariadne = "*"
 pytz = "*"
 arrow = "*"
 python-dateutil = "*"
-asgiref = "*"
 fastapi = "*"
+uvicorn = "*"
 
 [dev-packages]
 flask-testing = "*"

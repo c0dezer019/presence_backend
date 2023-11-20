@@ -1,16 +1,16 @@
 from arrow import get
+from sqlalchemy.orm import Session
 
-from core.config import sql
-from core.models.member_shard import Member
+from ..database.models.member_shard import MemberShard
 
 
 def resolve_create_member(obj, info, **data):
     try:
         guild_id = data["guild_id"]
-        member = Member(**data)
+        member = MemberShard(**data)
 
-        sql.session.add(member)
-        sql.session.commit()
+        db.add(member)
+        db.commit()
 
         payload = {
             'code': 200,
@@ -34,7 +34,7 @@ def resolve_create_member(obj, info, **data):
 
 def resolve_members():
     try:
-        members = [member.as_dict() for member in Member.query.all()]
+        members = [member.as_dict() for member in MemberShard.query.all()]
 
         if members:
             payload = {
@@ -58,7 +58,7 @@ def resolve_members():
 
 def resolve_member(obj, info, member_id):
     try:
-        member = Member.query.filter_by(member_id = member_id).first()
+        member = MemberShard.query.filter_by(member_id = member_id).first()
 
         payload = {
             'code': 200,
@@ -74,9 +74,9 @@ def resolve_member(obj, info, member_id):
     return payload
 
 
-def resolve_update_member(member_id, **data):
+def resolve_update_member(db: Session, member_id, **data):
     try:
-        member = Member.query.filter_by(member_id = member_id).first()
+        member = MemberShard.query.filter_by(member_id = member_id).first()
 
         for k, v in data.items():
             if k == 'last_activity_ts':
@@ -84,8 +84,8 @@ def resolve_update_member(member_id, **data):
 
             setattr(member, k, v)
 
-        sql.session.add(member)
-        sql.session.commit()
+        db.add(member)
+        db.commit()
 
         payload = {
             'code': 200,
@@ -115,7 +115,7 @@ def resolve_update_member(member_id, **data):
 
 def resolve_delete_member(member_id):
     try:
-        member = Member.query.filter_by(member_id = member_id).first()
+        member = MemberShard.query.filter_by(member_id = member_id).first()
 
         sql.session.delete(member)
         sql.session.commit()

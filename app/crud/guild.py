@@ -1,7 +1,6 @@
 from arrow import get
 
-from ..config import sql
-from ..models.guild import Guild
+from ..database.models import Guild
 
 
 def resolve_create_guild(obj, info, **kwargs):

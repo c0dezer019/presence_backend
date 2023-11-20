@@ -1,4 +1,4 @@
-import core.crud.member_crud as crud
+import app.crud.member_crud as crud
 from datetime import datetime
 
 

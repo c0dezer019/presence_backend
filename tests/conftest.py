@@ -1,17 +1,17 @@
 import pytest
 
-from core import create_app
+from main import app
 
 
 @pytest.fixture(scope="session")
-def app():
+def fastapi():
     '''Sets up an instance'''
-    app = create_app("TestConfig")
+    fastapi = app()
 
-    yield app
+    yield fastapi
 
 
 def test_app(app):
-    from flask.app import Flask
+    from fastapi import FastAPI
 
-    assert type(app) == Flask
+    assert type(app) == FastAPI

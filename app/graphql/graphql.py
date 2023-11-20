@@ -1,13 +1,15 @@
 from ariadne import (
     MutationType,
     QueryType,
-    graphql_sync,
     load_schema_from_path,
     make_executable_schema,
 )
-from flask import Blueprint, jsonify, request
+from ariadne.asgi import GraphQL
+from ariadne.asgi.handlers import GraphQLTransportWSHandler
+from starlette.applications import Starlette
+from starlette.routing import Route, WebSocketRoute
 
-from ..crud.guild_crud import (
+from ..crud.guild import (
     resolve_create_guild,
     resolve_delete_guild,
     resolve_guild,
@@ -38,22 +40,19 @@ mutation.set_field("createMember", resolve_create_member)
 mutation.set_field("updateMember", resolve_update_member)
 mutation.set_field("deleteMember", resolve_delete_member)
 
-bot = Blueprint("bot", __name__)
 schema = make_executable_schema(
     type_defs, query, mutation, convert_names_case=True
 )
 
+graphql_app = GraphQL(
+    schema,
+    debug=True,
+    websocket_handler=GraphQLTransportWSHandler(),
+)
 
-@bot.route("/graphql", methods=["POST"])
-def server():
-    data = request.get_json()
-    success, result = graphql_sync(
-        schema,
-        data,
-        context_value=request,
-        debug=True
-    )
-
-    status_code = 200 if success else 400
-
-    return jsonify(result), status_code
+app = Starlette(
+    routes=[
+        Route("/graphql/", graphql_app.handle_request, methods=["GET", "POST", "OPTIONS"]),
+        WebSocketRoute("/graphql", graphql_app.handle_websocket)
+    ]
+)
