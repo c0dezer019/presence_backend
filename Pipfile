@@ -16,6 +16,7 @@ arrow = "*"
 python-dateutil = "*"
 fastapi = "*"
 uvicorn = "*"
+strawberry-graphql = {extras = ["debug-server"], version = "*"}
 
 [dev-packages]
 flask-testing = "*"
