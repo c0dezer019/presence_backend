@@ -1,1 +1,1 @@
-from .database import SessionLocal, engine #noqa: F401
+from .database import Base, LocalSession #noqa: F401
