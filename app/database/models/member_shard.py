@@ -6,16 +6,18 @@ from sqlalchemy import (
     BigInteger,
     Boolean,
     DateTime,
+    ForeignKey,
     Integer,
     String,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from arrow import get, now
+from arrow import now
+from arrow.arrow import Arrow
 from datetime import datetime
 from dateutil.tz import gettz
 
 # Internal modules
-from app.database.models import Base
+from app.database import Base
 
 
 class MemberShard(Base):
@@ -26,14 +28,15 @@ class MemberShard(Base):
     username: Mapped[str] = mapped_column(String, nullable=False)
     discriminator: Mapped[int] = mapped_column(Integer, nullable=False, unique=True)
     member_id: Mapped[int] = mapped_column(BigInteger, nullable=False, unique=True)
-    guild = relationship("Guild", back_populates="member_shards")
+    guild_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("guilds.guild_id"))
+    guild = relationship("Guild", back_populates="members")
     nickname: Mapped[str] = mapped_column(String, server_default="")
     admin_access: Mapped[bool] = mapped_column(Boolean, default=False)
     last_activity: Mapped[str] = mapped_column(String, server_default="None")
     last_active_server: Mapped[int] = mapped_column(BigInteger, default=0)
     last_active_channel: Mapped[int] = mapped_column(BigInteger, default=0)
     last_active_ts: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=get(datetime(1970, 1, 1, 0, 0), gettz("US/Central")).datetime # type:ignore
+        DateTime(timezone=True), default=Arrow(1970, 1, 1, 0, 0, tzinfo=gettz("US/Central")).datetime # type:ignore
     )
     idle_times: Mapped[list[int]] = mapped_column(ARRAY(Integer), default=[])
     # Instant avg like an instant MPG in the car.
