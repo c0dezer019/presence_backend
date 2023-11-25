@@ -14,9 +14,10 @@ ariadne = "*"
 pytz = "*"
 arrow = "*"
 python-dateutil = "*"
-fastapi = "*"
 uvicorn = "*"
 strawberry-graphql = {extras = ["debug-server"], version = "*"}
+fastapi = "*"
+databases = "*"
 
 [dev-packages]
 flask-testing = "*"
