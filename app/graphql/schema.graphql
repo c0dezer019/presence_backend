@@ -3,125 +3,146 @@ schema {
     mutation: Mutation
 }
 
-scalar BigInt
+scalar Snowflake
 scalar DateTime
 scalar Dict
-scalar List
+scalar Set
 
-type Member {
-    id: ID!
-    member_id: BigInt!
+interface User {
+    member_id: Snowflake!
+    username: String!
+    discriminator: Int!
+    admin_access: Boolean
+    status: String
+    date_added: DateTime
+    flags: [String!]
+}
+
+type Member implements User {
+    member_id: Snowflake!
     username: String!
     discriminator: Int!
     nickname: String
     admin_access: Boolean
     last_activity: String
-    last_active_server: BigInt
-    last_active_channel: BigInt
+    last_active_server: Snowflake
+    last_active_channel: Snowflake
     last_active_ts: DateTime
-    idle_times: List
+    idle_times: [Int!]
     avg_idle_time: Int
-    recent_avgs: List
-    flags: [String]
+    recent_avgs: [Int!]
+    flags: [String!]
     status: String
     date_added: DateTime
 }
 
 type MemberResult {
     code: Int!
-    success_msg: String
-    errors: [String]
+    errors: [String!]
     member: Member
 }
 
 type MembersResult {
     code: Int!
-    errors: [String]
-    members: [Member]
+    errors: [String!]
+    members: Set
 }
 
-type Guild {
-    id: ID!
-    guild_id: BigInt!
+interface Server {
+    guild_id: Snowflake!
     name: String!
-    last_activity: String
-    last_active_channel: BigInt
-    last_active_ts: String
-    idle_times: List
-    avg_idle_time: Int
-    recent_avgs: List
     status: String
     settings: Dict
-    members: [Member!]
+    date_added: DateTime
+}
+
+type Guild implements Server {
+    guild_id: Snowflake!
+    name: String!
+    last_activity: String
+    last_active_channel: Snowflake
+    last_active_ts: String
+    idle_times: [Int!]
+    avg_idle_time: Int
+    recent_avgs: [Int!]
+    status: String
+    settings: Dict
+    members: Set
     date_added: DateTime
 }
 
 type GuildResult {
     code: Int!
-    success_msg: String
-    errors: [String]
+    errors: [String!]
     guild: Guild
 }
 
 type GuildsResult {
     code: Int!
-    errors: [String]
-    guilds: [Guild]
+    errors: [String!]
+    guilds: Set
 }
 
 type Query {
     members: MembersResult!
-    member(member_id: BigInt!): MemberResult
+    member(member_id: Snowflake!): MemberResult
     guilds: GuildsResult!
-    guild(guild_id: BigInt!): GuildResult
+    guild(guild_id: Snowflake!): GuildResult
 }
 
 type DeleteResult {
     code: Int!
-    success_msg: String
-    errors: [String]
+    errors: [String!]
+}
+
+input GuildCreate {
+    guild_id: Snowflake!
+    name: String!
+}
+
+input GuildUpdate {
+    name: String
+    last_activity: String
+    last_active_channel: Snowflake
+    last_active_ts: DateTime
+    idle_times: [Int!]
+    avg_idle_time: Int
+    recent_avgs: [Int!]
+    status: String
+    settings: Dict
+    members: Set
+}
+
+input MemberCreate {
+    member_id: Snowflake!
+    username: String!
+    discriminator: Int!
+    nickname: String
+    flags: [String!]
+}
+
+input MemberUpdate {
+    member_id: Snowflake!,
+    nickname: String,
+    username: String,
+    discriminator: Int,
+    admin_access: Boolean,
+    last_activity: String,
+    last_active_server: Snowflake,
+    last_active_channel: Snowflake,
+    last_active_ts: DateTime,
+    idle_times: List,
+    avg_idle_time: Int,
+    recent_avgs: List,
+    flags: [String!],
+    status: String
 }
 
 type Mutation {
-    createGuild(guild_id: BigInt!, name: String!): GuildResult!
-    updateGuild(
-        guild_id: BigInt!,
-        name: String,
-        last_activity: String,
-        last_active_channel: BigInt,
-        last_active_ts: DateTime,
-        idle_times: List,
-        avg_idle_time: Int,
-        recent_avgs: List,
-        status: String
-    ): GuildResult!
-
-    deleteGuild(guild_id: BigInt!): DeleteResult!
-    createMember(
-        id: Int!,
-        member_id: BigInt!,
-        username: String!,
-        discriminator: Int!,
-        nickname: String,
-        flags: [String]
-    ): MemberResult!
-
-    updateMember(
-        member_id: BigInt!,
-        nickname: String,
-        username: String,
-        discriminator: Int,
-        admin_access: Boolean,
-        last_activity: String,
-        last_active_server: BigInt,
-        last_active_channel: BigInt,
-        last_active_ts: DateTime,
-        idle_times: List,
-        avg_idle_time: Int,
-        recent_avgs: List,
-        flags: [String],
-        status: String
-    ): MemberResult!
-
-    deleteMember(member_id: BigInt!): DeleteResult!
+    createMember(input: MemberCreate!): MemberResult!
+    updateMember(member_id: Snowflake!, input: MemberUpdate!): MemberResult!
+    createGuild(input: GuildCreate!): GuildResult!
+    updateGuild(guild_id: Snowflake!, input: GuildUpdate!): GuildResult!
+    deleteGuild(guild_id: Snowflake!): DeleteResult!
+    deleteMember(member_id: Snowflake!): DeleteResult!
 }
