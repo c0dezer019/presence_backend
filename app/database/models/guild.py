@@ -60,7 +60,7 @@ class Guild(Base):
 
     def as_dict(self):
         guild_dict = {
-            c.name: getattr(self, c.name) for c in self.__table__.mapped_columns
+            c.name: getattr(self, c.name) for c in self.__table__.columns
         }  # type: ignore
         guild_dict["last_activity_ts"] = guild_dict["last_activity_ts"].isoformat()
         guild_dict["date_added"] = guild_dict["date_added"].isoformat()

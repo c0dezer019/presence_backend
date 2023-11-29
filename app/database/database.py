@@ -2,36 +2,52 @@ from os import getenv
 
 from dotenv import load_dotenv
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import DeclarativeBase, sessionmaker
 from sqlalchemy.pool import StaticPool
 
 load_dotenv()
 
 
-def create_db_url(mode):
-    database = getenv("DEV_DB")
-    user = getenv("DEV_USER")
-    password = getenv("DEV_PASSWORD")
-    host = getenv("HOST")
-    port = getenv("PORT")
+class LocalSession:
+    def _create_db_url(self, mode):
+        database = getenv("DEV_DB")
+        user = getenv("DEV_USER")
+        password = getenv("DEV_PASSWORD")
+        host = getenv("HOST")
+        port = getenv("PORT")
 
-    if mode == "testing":
-        database = getenv("TEST_DB")
-        user = getenv("TEST_USER")
-        password = getenv("TEST_PASSWORD")
+        if mode == "testing":
+            database = getenv("TEST_DB")
+            user = getenv("TEST_USER")
+            password = getenv("TEST_PASSWORD")
 
-    elif mode == "production":
-        database = getenv("PROD_DB")
-        user = getenv("PROD_USER")
-        password = getenv("PROD_PASSWORD")
-        host = getenv("PROD_HOST")
+        elif mode == "production":
+            database = getenv("PROD_DB")
+            user = getenv("PROD_USER")
+            password = getenv("PROD_PASSWORD")
+            host = getenv("PROD_HOST")
 
-    return f"postgresql://{user}:{password}@{host}:{port}/{database}"
+        return f"postgresql://{user}:{password}@{host}:{port}/{database}"
+
+    def __init__(self):
+        self.engine = create_engine(
+            self._create_db_url(
+                "development" if getenv("MODE") == "development" else "production"
+            ),
+            echo=True,
+        )
+        self.session = sessionmaker(
+            autocommit=False, autoflush=False, bind=self.engine
+        )()
 
 
-engine = create_engine(
-    create_db_url("development" if getenv("MODE") == "development" else "production")
-)
-test_engine = create_engine(create_db_url("testing"), poolclass=StaticPool)
+class TestSession(LocalSession):
+    def __init__(self):
+        super().__init__()
+        self.engine = create_engine(
+            self._create_db_url("testing"), poolclass=StaticPool
+        )
 
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+class Base(DeclarativeBase):
+    pass
