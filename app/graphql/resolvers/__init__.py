@@ -1,1 +1,3 @@
-from app.graphql.resolvers.guild import create_guild, update_guild #noqa: F401
+from app.graphql.resolvers.resolver import Resolver #noqa: F401
+
+resolve = Resolver()

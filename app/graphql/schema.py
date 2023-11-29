@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Optional, NewType
 
 from app.database import LocalSession
-from app.graphql.resolvers.guild import create_guild
+from app.graphql.resolvers.resolver import create_guild
 
 Snowflake = strawberry.scalar(
     NewType("Snowflake", strawberry.ID), serialize=lambda v: v, parse_value=lambda v: v
