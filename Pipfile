@@ -4,7 +4,7 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-sqlalchemy = "*"
+sqlalchemy = ">= 2.0.23"
 requests = "*"
 python-dotenv = "*"
 psycopg2-binary = "*"
@@ -17,7 +17,6 @@ python-dateutil = "*"
 uvicorn = "*"
 strawberry-graphql = {extras = ["debug-server"], version = "*"}
 fastapi = "*"
-databases = "*"
 
 [dev-packages]
 flask-testing = "*"
