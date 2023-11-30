@@ -1,1 +1,6 @@
-from .database import SessionLocal, engine #noqa: F401
+from .database import Base, LocalSession #noqa: F401
+
+Base = Base
+LocalSession = LocalSession()
+session = LocalSession.session
+engine = LocalSession.engine
