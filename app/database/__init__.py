@@ -1,6 +1,4 @@
-from .database import Base, LocalSession #noqa: F401
+from .database import Base, LocalSession
 
-Base = Base
-LocalSession = LocalSession()
-session = LocalSession.session
-engine = LocalSession.engine
+Session = LocalSession()
+engine = Session.engine

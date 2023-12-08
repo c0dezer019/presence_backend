@@ -162,4 +162,5 @@ cython_debug/
 
 .prettierrc
 .vscode
+.idea
 test.py
