@@ -9,6 +9,7 @@ from sqlalchemy import (
     ForeignKey,
     Integer,
     String,
+    func,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from arrow import now
@@ -21,7 +22,6 @@ from app.database import Base
 
 
 class MemberShard(Base):
-
     __tablename__ = "member_shards"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, nullable=False)
@@ -36,7 +36,8 @@ class MemberShard(Base):
     last_active_server: Mapped[int] = mapped_column(BigInteger, default=0)
     last_active_channel: Mapped[int] = mapped_column(BigInteger, default=0)
     last_active_ts: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=Arrow(1970, 1, 1, 0, 0, tzinfo=gettz("US/Central")).datetime # type:ignore
+        DateTime(timezone=True), server_default=func.now(),
+        default=Arrow(1970, 1, 1, 0, 0, tzinfo=gettz("US/Central")).datetime  # type:ignore
     )
     idle_times: Mapped[list[int]] = mapped_column(ARRAY(Integer), default=[])
     # Instant avg like an instant MPG in the car.
@@ -44,12 +45,12 @@ class MemberShard(Base):
     recent_avgs: Mapped[list[int]] = mapped_column(ARRAY(Integer), default=[])
     # Overall Discord status. Not representative of individual servers.
     status: Mapped[str] = mapped_column(String, nullable=False, server_default="new")
-    date_added: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now(gettz("US/Central")).datetime)
+    date_added: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(),
+                                                 default=now(gettz("US/Central")).datetime)
 
     def __repr__(self):
-
         return (
-            f"<Member (id = {self.id}, username = {self.username}, discriminator = {self.discriminator}"
+            f"<Member (id = {self.id}, username = {self.username}, discriminator = {self.discriminator}, "
             f"member_id = {self.member_id}, guild = {self.guild}, last_activity = {self.last_activity}, "
             f"last_active_server = {self.last_active_server}, last_active_channel = "
             f"{self.last_active_channel} last_active_ts = {self.last_active_ts.isoformat()}), "
@@ -59,9 +60,8 @@ class MemberShard(Base):
         )
 
     def as_dict(self):
-
-        member_dict = {c.name: getattr(self, c.name) for c in self.__table__.mapped_columns}  # type: ignore
-        member_dict["last_activity_ts"] = member_dict["last_activity_ts"].isoformat()
+        member_dict = {c.name: getattr(self, c.name) for c in self.__table__.columns}  # type: ignore
+        member_dict["last_active_ts"] = member_dict["last_active_ts"].isoformat()
         member_dict["date_added"] = member_dict["date_added"].isoformat()
 
         return member_dict

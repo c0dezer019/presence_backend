@@ -12,6 +12,7 @@ from sqlalchemy import (
     Integer,
     JSON,
     String,
+    func
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from arrow import now
@@ -32,6 +33,7 @@ class Guild(Base):
     last_active_channel: Mapped[int] = mapped_column(BigInteger, default=0)
     last_active_ts: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
+        server_default=func.now(),
         default=Arrow(1970, 1, 1, 0, 0, tzinfo=gettz("US/Central")).datetime,  # type:ignore
     )
     idle_times: Mapped[int] = mapped_column(ARRAY(Integer), default=[])
@@ -45,7 +47,7 @@ class Guild(Base):
         cascade="all,delete",
     )
     date_added: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=now(gettz("US/Central")).datetime
+        DateTime(timezone=True), server_default=func.now(), default=now(gettz("US/Central")).datetime
     )
 
     def __repr__(self):
@@ -60,7 +62,7 @@ class Guild(Base):
 
     def as_dict(self):
         guild_dict = {
-            c.name: getattr(self, c.name) for c in self.__table__.columns
+            c.name: getattr(self, c.name) for c in self.__table__.columns()
         }  # type: ignore
         guild_dict["last_activity_ts"] = guild_dict["last_activity_ts"].isoformat()
         guild_dict["date_added"] = guild_dict["date_added"].isoformat()
