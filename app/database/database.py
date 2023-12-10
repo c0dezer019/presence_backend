@@ -32,12 +32,7 @@ def _create_db_url(mode):
 class LocalSession:
 
     def __init__(self):
-        self.engine = create_engine(
-            _create_db_url(
-                "development" if getenv("MODE") == "development" else "production"
-            ),
-            echo=True,
-        )
+        self.engine = create_engine(_create_db_url(getenv("MODE")), echo=True)
         self.Session = sessionmaker(self.engine)
 
 
