@@ -3,73 +3,44 @@ from __future__ import annotations
 
 from typing import List, Optional
 
+from fastapi import HTTPException
 # Third party modules
-from strawberry import ID
 from sqlalchemy import update
-from sqlalchemy.exc import IntegrityError, InvalidRequestError, NoResultFound
+from sqlalchemy.exc import InvalidRequestError, NoResultFound
 from sqlalchemy.orm.exc import UnmappedInstanceError
 
 # Internal modules
 from app.database import Session
 from app.database.models import Guild, MemberShard
+from app.database.utils import get_or_create
 
 
 class Resolver:
     def __init__(self):
-        self.db = Session.Session()
+        self.db = Session.session
 
-    def create_guild(self, guild_id: ID, name: str) -> Guild:
-        try:
-            guild: Guild = Guild(guild_id=guild_id, name=name)
+    def guild(self, guild_id: int, name: str) -> Guild:
+        guild: tuple[Guild, bool] = get_or_create(self.db, Guild, guild_id=guild_id, name=name)
 
+        return guild[0]
+
+    def member(self, guild_id: int, guild_name: str, member_id: int, username: str, discriminator: int,
+               nickname: Optional[str] = None) -> MemberShard:
+
+        guild: Guild = self.db.query(Guild).where(Guild.guild_id == guild_id).where(
+            Guild.name == guild_name).first()
+        new_member: tuple[Guild | MemberShard, bool] = \
+            get_or_create(self.db, MemberShard, member_id=member_id, username=username, discriminator=discriminator,
+                          nickname=nickname)
+
+        if new_member[1]:
+            guild.members.append(new_member[0])
             self.db.add(guild)
-            return guild
-
-        except IntegrityError as ie:
-            print(ie)
-
-        except TypeError as te:
-            print(te)
-
-        self.db.commit()
-
-    def create_member(self, guild_id: ID, guild_name: str, member_id: ID, username: str, discriminator: int,
-                      nickname: Optional[str] = None) -> MemberShard:
-        try:
-            guild: Guild = self.db.query(Guild).where(Guild.guild_id == guild_id).where(
-                Guild.name == guild_name).first()
-            new_member: MemberShard = MemberShard(member_id=member_id, username=username, discriminator=discriminator,
-                                                  nickname=nickname)
-
-            guild.members.append(new_member)
-            self.db.add(guild)
-            self.db.add(new_member)
             self.db.commit()
 
-            return new_member
+        return new_member[0]
 
-        except InvalidRequestError as ire:
-            print(ire)
-
-    def retrieve_guild(self, guild_id: ID, name: str) -> Guild | None:
-        try:
-            query = self.db.query(Guild).where(Guild.guild_id == guild_id).where(Guild.name == name).first()
-
-            return query
-
-        except InvalidRequestError as ire:
-            print(ire)
-
-    def retrieve_member(self, member_id: ID, guild_id: ID) -> MemberShard | None:
-        try:
-            query = (self.db.query(MemberShard).where(MemberShard.member_id == member_id)
-                     .where(MemberShard.guild_id == guild_id))
-
-            return query
-        except InvalidRequestError as ie:
-            print(ie)
-
-    def update_guild(self, guild_id: ID, **kwargs) -> Guild:
+    def update_guild(self, guild_id: int, **kwargs) -> Guild:
         try:
             upd = update(Guild).where(Guild.guild_id == guild_id).values(**kwargs).returning(Guild)
             res = self.db.execute(upd).unique().scalars().one()
@@ -79,7 +50,7 @@ class Resolver:
         except NoResultFound as nrf:
             print(nrf)
 
-    def update_member_shard(self, member_id: ID, guild_id: ID, **kwargs) -> MemberShard:
+    def update_member_shard(self, member_id: int, guild_id: int, **kwargs) -> MemberShard:
         try:
             upd = (update(MemberShard).where(MemberShard.member_id == member_id, Guild.guild_id == guild_id)
                    .values(**kwargs).returning(MemberShard))
@@ -89,7 +60,7 @@ class Resolver:
         except NoResultFound as nrf:
             print(nrf)
 
-    def delete_guild(self, guild_id: ID) -> Guild | None:
+    def delete_guild(self, guild_id: int) -> Guild | None:
 
         guild: Guild | None = self.db.query(Guild).filter_by(guild_id=guild_id).first()
 
@@ -101,7 +72,7 @@ class Resolver:
 
         return guild
 
-    def delete_member_shard(self, guild_id: ID, member_id: ID) -> MemberShard | None:
+    def delete_member_shard(self, guild_id: int, member_id: int) -> MemberShard | None:
         member_shard: Guild | None = self.db.query(MemberShard).filter(Guild.guild_id == guild_id,
                                                                        MemberShard.member_id == member_id).first()
 
@@ -113,7 +84,7 @@ class Resolver:
 
         return member_shard
 
-    def prune(self, guild_id: ID) -> List[MemberShard]:
+    def prune(self, guild_id: int) -> List[MemberShard]:
         """
         Prunes members from a guild, without deleting the guild.\n
 

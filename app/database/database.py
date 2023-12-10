@@ -34,6 +34,7 @@ class LocalSession:
     def __init__(self):
         self.engine = create_engine(_create_db_url(getenv("MODE")), echo=True)
         self.Session = sessionmaker(self.engine)
+        self.session = self.Session()
 
 
 class TestSession(LocalSession):
