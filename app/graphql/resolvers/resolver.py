@@ -1,85 +1,130 @@
 # Internal modules
-from typing import Optional
+from __future__ import annotations
+
+from typing import List, Optional
 
 # Third party modules
 from strawberry import ID
-from sqlalchemy import delete, select
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy import update
+from sqlalchemy.exc import IntegrityError, InvalidRequestError, NoResultFound
 from sqlalchemy.orm.exc import UnmappedInstanceError
 
 # Internal modules
-from app.database import session
+from app.database import Session
 from app.database.models import Guild, MemberShard
 
 
 class Resolver:
-    def _update_entity(self, entity: Guild | MemberShard, data: dict):
-        for k, v in data.items():
-            try:
-                entity.__setattr__(k, v)
-                self.db.commit()
-            except (NameError, AttributeError):
-                pass
-
     def __init__(self):
-        self.db = session
+        self.db = Session.Session()
 
-    def create_guild(self, **kwargs) -> Guild:
-        guild: Guild = Guild(**kwargs)
-
-        self.db.add(guild)
-
+    def create_guild(self, guild_id: ID, name: str) -> Guild:
         try:
-            self.db.commit()
-        except IntegrityError:
-            print("Already exists.")
+            guild: Guild = Guild(guild_id=guild_id, name=name)
 
-        return guild
-
-    def updater(
-        self, guild_id: ID, member_id: Optional[ID], **kwargs
-    ) -> Guild | MemberShard:
-        guild: Guild = self.db.execute(
-            select(Guild).filter_by(guild_id=guild_id)
-        ).scalar_one()
-        member: MemberShard | None = (
-            self.db.execute(
-                select(MemberShard).filter_by(guild_id=guild_id)
-            ).scalar_one()
-            if member_id
-            else None
-        )
-
-        if member is None:
-            self._update_entity(guild, kwargs)
-
+            self.db.add(guild)
             return guild
-        else:
-            self._update_entity(member, kwargs)
 
-            return member
+        except IntegrityError as ie:
+            print(ie)
 
-    def delete_entity(
-        self, guild_id: ID, member_id: Optional[ID]
-    ) -> Guild | MemberShard | None:
-        entity: MemberShard | Guild | None = (
-            self.db.query(Guild if not member_id else MemberShard)
-            .filter_by(guild_id=guild_id)
-            .first()
-        )
+        except TypeError as te:
+            print(te)
+
+        self.db.commit()
+
+    def create_member(self, guild_id: ID, guild_name: str, member_id: ID, username: str, discriminator: int,
+                      nickname: Optional[str] = None) -> MemberShard:
+        try:
+            guild: Guild = self.db.query(Guild).where(Guild.guild_id == guild_id).where(
+                Guild.name == guild_name).first()
+            new_member: MemberShard = MemberShard(member_id=member_id, username=username, discriminator=discriminator,
+                                                  nickname=nickname)
+
+            guild.members.append(new_member)
+            self.db.add(guild)
+            self.db.add(new_member)
+            self.db.commit()
+
+            return new_member
+
+        except InvalidRequestError as ire:
+            print(ire)
+
+    def retrieve_guild(self, guild_id: ID, name: str) -> Guild | None:
+        try:
+            query = self.db.query(Guild).where(Guild.guild_id == guild_id).where(Guild.name == name).first()
+
+            return query
+
+        except InvalidRequestError as ire:
+            print(ire)
+
+    def retrieve_member(self, member_id: ID, guild_id: ID) -> MemberShard | None:
+        try:
+            query = (self.db.query(MemberShard).where(MemberShard.member_id == member_id)
+                     .where(MemberShard.guild_id == guild_id))
+
+            return query
+        except InvalidRequestError as ie:
+            print(ie)
+
+    def update_guild(self, guild_id: ID, **kwargs) -> Guild:
+        try:
+            upd = update(Guild).where(Guild.guild_id == guild_id).values(**kwargs).returning(Guild)
+            res = self.db.execute(upd).unique().scalars().one()
+
+            return res
+
+        except NoResultFound as nrf:
+            print(nrf)
+
+    def update_member_shard(self, member_id: ID, guild_id: ID, **kwargs) -> MemberShard:
+        try:
+            upd = (update(MemberShard).where(MemberShard.member_id == member_id, Guild.guild_id == guild_id)
+                   .values(**kwargs).returning(MemberShard))
+            res = self.db.execute(upd).unique().scalars().one()
+
+            return res
+        except NoResultFound as nrf:
+            print(nrf)
+
+    def delete_guild(self, guild_id: ID) -> Guild | None:
+
+        guild: Guild | None = self.db.query(Guild).filter_by(guild_id=guild_id).first()
 
         try:
-            self.db.delete(entity)
+            self.db.delete(guild)
             self.db.commit()
         except UnmappedInstanceError:
             pass
 
-        return entity
+        return guild
 
-    def prune(self, guild_id: ID):
-        member_shard_table = MemberShard.__table__
+    def delete_member_shard(self, guild_id: ID, member_id: ID) -> MemberShard | None:
+        member_shard: Guild | None = self.db.query(MemberShard).filter(Guild.guild_id == guild_id,
+                                                                       MemberShard.member_id == member_id).first()
 
-        stmt = delete(MemberShard).where(
-            member_shard_table.c.guild_id == guild_id
-        )
-        self.db.execute(stmt)
+        try:
+            self.db.delete(member_shard)
+            self.db.commit()
+        except UnmappedInstanceError:
+            pass
+
+        return member_shard
+
+    def prune(self, guild_id: ID) -> List[MemberShard]:
+        """
+        Prunes members from a guild, without deleting the guild.\n
+
+        Params:
+        guild_id: strawberry.ID
+            A strawberry.ID serialized int representing the Discord Server.id.
+        """
+
+        member_shards: List[MemberShard] = self.db.query(MemberShard).filter_by(guild_id=guild_id).all()
+
+        self.db.delete(member_shards)
+        self.db.commit()
+
+        return member_shards

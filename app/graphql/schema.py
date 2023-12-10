@@ -2,8 +2,8 @@ import strawberry
 from datetime import datetime
 from typing import Optional, NewType
 
-from app.database import LocalSession
-from app.graphql.resolvers.resolver import create_guild
+from app.graphql.resolvers import resolve
+
 
 Snowflake = strawberry.scalar(
     NewType("Snowflake", strawberry.ID), serialize=lambda v: v, parse_value=lambda v: v
@@ -19,14 +19,12 @@ Set = strawberry.scalar(
     NewType("Set", set), serialize=lambda v: v, parse_value=lambda v: v
 )
 
-db = LocalSession().session()
-
 
 @strawberry.interface
 class User:
     member_id: Snowflake
-    username: str
-    discriminator: int
+    username: Optional[str] = strawberry.UNSET
+    discriminator: Optional[int] = strawberry.UNSET
     admin_access: Optional[bool] = strawberry.UNSET
     date_added: Optional[datetime] = strawberry.UNSET
     flags: Optional[list[str]] = strawberry.UNSET
@@ -79,7 +77,7 @@ class MembersResult:
 @strawberry.interface
 class Server:
     guild_id: Snowflake
-    name: str
+    name: Optional[str] = strawberry.UNSET
     status: Optional[str] = strawberry.UNSET
     settings: Optional[Dict] = strawberry.UNSET
     date_added: Optional[datetime] = strawberry.UNSET
@@ -189,7 +187,7 @@ class Mutation:
     @strawberry.mutation
     def create_member(self, input: MemberCreate) -> MemberResult:
         try:
-            create_guild(
+            resolve.create_guild(
                 member_id=input.member_id,
                 username=input.username,
                 discriminator=input.discriminator,
