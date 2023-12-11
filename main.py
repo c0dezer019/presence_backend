@@ -5,11 +5,11 @@ from strawberry import Schema
 from strawberry.fastapi import GraphQLRouter
 
 # Internal modules
-from app.database import Session, dev_engine
+from app.database import ORMSession, engine
 from app.database.models import Base
 from app.graphql import query, mutation
 
-Base.metadata.create_all(dev_engine)
+Base.metadata.create_all(engine)
 
 origins = [
     "http://localhost:8000",
@@ -19,7 +19,7 @@ origins = [
 
 
 def get_db():
-    db = Session.Session()
+    db = ORMSession.ORMSession()
     try:
         yield db
     finally:
