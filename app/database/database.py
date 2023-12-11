@@ -3,7 +3,7 @@ from os import getenv
 from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
-from sqlalchemy.pool import StaticPool
+from sqlalchemy.pool import StaticPool, QueuePool
 
 load_dotenv()
 
@@ -30,19 +30,14 @@ def _create_db_url(mode):
 
 
 class LocalSession:
-
     def __init__(self):
-        self.engine = create_engine(_create_db_url(getenv("MODE")), echo=True)
+        self.engine = create_engine(
+            _create_db_url(getenv("MODE")),
+            echo=True if getenv("MODE") == "development" else False,
+            poolclass=StaticPool if getenv("MODE") == "testing" else QueuePool
+        )
         self.Session = sessionmaker(self.engine)
         self.session = self.Session()
-
-
-class TestSession(LocalSession):
-    def __init__(self):
-        super().__init__()
-        self.engine = create_engine(
-            _create_db_url("testing"), poolclass=StaticPool
-        )
 
 
 class Base(DeclarativeBase):

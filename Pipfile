@@ -23,6 +23,7 @@ bs4 = "*"
 flask-testing = "*"
 pytest = "*"
 pytest-reportlog = "*"
+httpx = "*"
 
 [requires]
 python_version = "3.12.1"

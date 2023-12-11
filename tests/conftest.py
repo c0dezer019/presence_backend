@@ -5,13 +5,12 @@ from main import app
 
 @pytest.fixture(scope="session")
 def fastapi():
-    '''Sets up an instance'''
     fastapi = app()
 
     yield fastapi
 
 
-def test_app(app):
+def test_app(fastapi):
     from fastapi import FastAPI
 
-    assert type(app) == FastAPI
+    assert type(app) is FastAPI

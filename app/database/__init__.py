@@ -1,6 +1,4 @@
-from .database import Base, LocalSession, TestSession as TestSes
+from .database import Base, LocalSession
 
-Session = LocalSession()
-dev_engine = Session.engine
-TestSession = TestSes()
-test_engine = TestSession.engine
+ORMSession = LocalSession()
+engine = ORMSession.engine
