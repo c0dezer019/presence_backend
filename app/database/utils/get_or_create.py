@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Type
 
+from fastapi import HTTPException
 from sqlalchemy import Row
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -24,6 +25,9 @@ def get_or_create(db: Session, model, **kwargs) -> (tuple[Guild | Type[MemberSha
 
         except TypeError as te:
             print(te)
+
+        except IntegrityError:
+            raise HTTPException(status_code=400, detail="You cannot create another guild with a duplicate ID.")
 
         else:
             return instance, True
