@@ -1,4 +1,4 @@
-from .database import Base, LocalSession
+from .database import Base, Database
 
-ORMSession = LocalSession()
-engine = ORMSession.engine
+database = Database()
+engine = database.engine

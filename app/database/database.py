@@ -29,7 +29,7 @@ def _create_db_url(mode):
     return f"postgresql://{user}:{password}@{host}:{port}/{database}"
 
 
-class LocalSession:
+class Database:
     def __init__(self):
         self.engine = create_engine(
             _create_db_url(getenv("MODE")),

@@ -28,7 +28,7 @@ class MemberShard(Base):
     username: Mapped[str] = mapped_column(String, nullable=False)
     discriminator: Mapped[int] = mapped_column(Integer, nullable=False, unique=True)
     member_id: Mapped[int] = mapped_column(BigInteger, nullable=False, unique=True)
-    guild_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("guilds.guild_id"))
+    guild_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("guilds.guild_id"), nullable=True)
     guild = relationship("Guild", back_populates="members")
     nickname: Mapped[str] = mapped_column(String, server_default="")
     admin_access: Mapped[bool] = mapped_column(Boolean, default=False)

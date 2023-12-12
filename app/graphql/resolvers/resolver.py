@@ -7,18 +7,17 @@ from fastapi import HTTPException
 # Third party modules
 from sqlalchemy import update, Update
 from sqlalchemy.exc import NoResultFound
-from sqlalchemy.orm import Session
 from sqlalchemy.orm.exc import UnmappedInstanceError
 
 # Internal modules
-from app.database import ORMSession
+from app.database import database
 from app.database.models import Guild, MemberShard
 from app.database.utils import get_or_create
 
 
 class Resolver:
     def __init__(self):
-        self.db = ORMSession
+        self.db = database
 
     def guild(self, guild_id: int, name: str) -> Guild:
         guild: tuple[Guild, bool] = get_or_create(self.db.session, Guild, guild_id=guild_id, name=name)
