@@ -33,7 +33,7 @@ class Database:
     def __init__(self):
         self.engine = create_engine(
             _create_db_url(getenv("MODE")),
-            echo=True if getenv("MODE") == "development" else False,
+            echo=True if getenv("MODE") == "development" or getenv("MODE") == "testing" else False,
             poolclass=StaticPool if getenv("MODE") == "testing" else QueuePool
         )
         self.Session = sessionmaker(self.engine)

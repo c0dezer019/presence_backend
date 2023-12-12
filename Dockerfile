@@ -1,24 +1,18 @@
-# Use an official Python runtime as a parent image
-FROM python:3.10.12-slim
+FROM ubuntu:latest
 
-# Set the working directory to /app
-WORKDIR /app
+RUN sudo apt-get update && sudo apt-get upgrade -y
 
-# Copy Pipfile and Pipfile.lock to the container
-COPY Pipfile Pipfile.lock /app/
+RUN /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
-# Install pipenv and dependencies
-RUN pip install pipenv && \
-    pipenv install --deploy --ignore-pipfile
+RUN brew update && \
+    brew install pyenv
 
-# Copy the current directory contents into the container at /app
-COPY . /app
+RUN pyenv install 3.12.1 && \
+    pip install --upgrade pip \
+    pip install pipenv --user
 
-# Make port 8000 available to the world outside this container
-EXPOSE 8000
+COPY . /usr/share/presence_backend/
 
-# Define environment variable
-ENV MODULE_NAME="asgi"
-ENV VARIABLE_NAME="create_asgi"
+WORKDIR /usr/share/presence_backend/
 
-CMD ["pipenv", "run", "uvicorn", "--factory", "--host", "0.0.0.0", "--port", "8002", "${MODULE_NAME}:${VARIABLE_NAME}"]
+CMD ["pp"]
