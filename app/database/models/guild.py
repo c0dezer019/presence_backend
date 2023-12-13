@@ -14,13 +14,13 @@ from sqlalchemy import (
     String,
     func
 )
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship, DeclarativeBase
 from arrow import now
 from arrow.arrow import Arrow
 from dateutil.tz import gettz
 
 # Internal modules
-from app.database import Base
+from app.database.models import Base
 
 
 class Guild(Base):
@@ -38,7 +38,7 @@ class Guild(Base):
     )
     idle_times: Mapped[int] = mapped_column(ARRAY(Integer), default=[])
     avg_idle_time: Mapped[int] = mapped_column(Integer, nullable=True, default=0)
-    recent_avgs: Mapped[list[int]] = mapped_column(ARRAY(Integer), default=[])
+    recent_averages: Mapped[list[int]] = mapped_column(ARRAY(Integer), default=[])
     status: Mapped[str] = mapped_column(String, nullable=False, server_default="new")
     settings: Mapped[dict] = mapped_column(JSON, default={})
     members = relationship(
@@ -55,8 +55,8 @@ class Guild(Base):
             f"<Guild (id = {self.id}, guild_id = {self.guild_id},  name = {self.name}, "
             f"last_activity = {self.last_activity}, last_active_channel = "
             f"{self.last_active_channel}, last_active_ts = {self.last_active_ts}, idle_times = "
-            f"{self.idle_times} avg_idle_time = {self.avg_idle_time}, recent_avgs = "
-            f"{self.recent_avgs}, status = {self.status}, settings = {self.settings}, members = "
+            f"{self.idle_times} avg_idle_time = {self.avg_idle_time}, recent_averages = "
+            f"{self.recent_averages}, status = {self.status}, settings = {self.settings}, members = "
             f"{self.members}, date_added = {self.date_added.isoformat()})>"
         )
 

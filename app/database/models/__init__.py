@@ -1,2 +1,3 @@
-from .guild import Guild, Base # noqa: F401
-from .member_shard import MemberShard  # noqa: F401
+from app.database.models.base import Base
+from app.database.models.guild import Guild
+from app.database.models.member_shard import MemberShard

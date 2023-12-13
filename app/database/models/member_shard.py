@@ -18,7 +18,7 @@ from datetime import datetime
 from dateutil.tz import gettz
 
 # Internal modules
-from app.database import Base
+from app.database.models import Base
 
 
 class MemberShard(Base):
