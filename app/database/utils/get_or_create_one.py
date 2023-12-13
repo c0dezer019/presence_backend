@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 # Internal modules
 from app.database.models import Guild, MemberShard
-from utils.types import GuildRow, MemberShardRow,  Query
+from utils.types import Model,  Query
 
 
 def get_or_create_one(db: Session, model: Type[Guild | MemberShard], **kwargs) -> Query:
@@ -45,7 +45,7 @@ def get_or_create_one(db: Session, model: Type[Guild | MemberShard], **kwargs) -
 
         else:
             logging.info(
-                f'{model.__qualname__} created with as Snowflake '
+                f'{model.__qualname__} created with with ID '
                 f'{instance.guild_id if type(instance) is Guild else instance.member_id}'
             )
 
