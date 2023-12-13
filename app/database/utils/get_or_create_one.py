@@ -13,11 +13,7 @@ from utils.types import GuildRow, MemberShardRow,  Query
 
 
 def get_or_create_one(db: Session, model: Type[Guild | MemberShard], **kwargs) -> Query:
-    if model is Guild:
-        instance: GuildRow = db.query(model).filter_by(**kwargs).one_or_none()
-    else:
-        instance: MemberShardRow = (db.query(model).filter_by(**kwargs)
-                                    .one_or_none())
+    instance: Model = db.query(model).filter_by(**kwargs).one_or_none()
 
     if instance:
         logging.info(
@@ -32,12 +28,9 @@ def get_or_create_one(db: Session, model: Type[Guild | MemberShard], **kwargs) -
 
             db.add(instance)
             db.commit()
-            logging.info(f'{model.__qualname__} created')
 
         except TypeError as te:
-            logging.error(f'TypeError while attempting to get or create {model.__qualname__}:\n\n{te}\n\n'
-                          f'kwargs: {kwargs}')
-            raise HTTPException(status_code=500)
+            logging.error(f'TypeError while attempting to get or create {model.__qualname__}:\n\n{te}')
 
         except IntegrityError:
             guild = get_or_create_one(db, model, kwargs)
