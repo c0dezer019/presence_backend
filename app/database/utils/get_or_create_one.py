@@ -17,7 +17,7 @@ def get_or_create_one(db: Session, model: Type[Guild | MemberShard], **kwargs) -
 
     if instance:
         logging.info(
-            f'{instance} with ID {instance[0]} found.'
+            f'{instance} with ID {instance.guild_id if type(instance) is Guild else instance.member_id} found.'
         )
 
         return instance, False
