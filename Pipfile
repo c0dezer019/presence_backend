@@ -9,7 +9,6 @@ requests = "*"
 python-dotenv = "*"
 psycopg2-binary = "*"
 wheel = "*"
-pytest = "*"
 ariadne = "*"
 pytz = "*"
 arrow = "*"
@@ -20,10 +19,11 @@ fastapi = "*"
 bs4 = "*"
 
 [dev-packages]
-flask-testing = "*"
 pytest = "*"
 pytest-reportlog = "*"
 httpx = "*"
+black = "*"
+isort = "*"
 
 [requires]
-python_version = "3.12.1"
+python_version = "3.12.2"

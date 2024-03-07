@@ -1,0 +1,17 @@
+[tool.black]
+line-length = 99
+target-version = ['py312']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  \.git
+  \.tox
+  \.venv
+  \.cfg
+  \.vscode
+  \.code-workspace
+  _build
+  build
+  dist
+)/
+'''
