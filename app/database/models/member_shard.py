@@ -1,5 +1,10 @@
 # Standard modules
 
+from datetime import datetime
+
+from arrow import now
+from arrow.arrow import Arrow
+from dateutil.tz import gettz
 # Third party modules
 from sqlalchemy import (
     ARRAY,
@@ -12,10 +17,6 @@ from sqlalchemy import (
     func,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from arrow import now
-from arrow.arrow import Arrow
-from datetime import datetime
-from dateutil.tz import gettz
 
 # Internal modules
 from app.database.models import Base
@@ -40,9 +41,9 @@ class MemberShard(Base):
         default=Arrow(1970, 1, 1, 0, 0, tzinfo=gettz("US/Central")).datetime  # type:ignore
     )
     idle_times: Mapped[list[int]] = mapped_column(ARRAY(Integer), default=[])
-    # Instant avg like an instant MPG in the car.
-    avg_idle_time: Mapped[int] = mapped_column(Integer, default=0)
-    recent_avgs: Mapped[list[int]] = mapped_column(ARRAY(Integer), default=[])
+    # Instant average like an instant MPG in the car.
+    average_idle_time: Mapped[int] = mapped_column(Integer, default=0)
+    recent_averages: Mapped[list[int]] = mapped_column(ARRAY(Integer), default=[])
     # Overall Discord status. Not representative of individual servers.
     status: Mapped[str] = mapped_column(String, nullable=False, server_default="new")
     date_added: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(),
@@ -54,8 +55,8 @@ class MemberShard(Base):
             f"member_id = {self.member_id}, guild = {self.guild}, last_activity = {self.last_activity}, "
             f"last_active_server = {self.last_active_server}, last_active_channel = "
             f"{self.last_active_channel} last_active_ts = {self.last_active_ts.isoformat()}), "
-            f"idle_times = {self.idle_times}, avg_idle_time = {self.avg_idle_time}, "
-            f"recent_avgs = {self.recent_avgs}, status = {self.status}, date_added = "
+            f"idle_times = {self.idle_times}, average_idle_time = {self.average_idle_time}, "
+            f"recent_averages = {self.recent_averages}, status = {self.status}, date_added = "
             f"{self.date_added}>"
         )
 
@@ -65,6 +66,3 @@ class MemberShard(Base):
         member_dict["date_added"] = member_dict["date_added"].isoformat()
 
         return member_dict
-
-    def update(self, new_timestamp):
-        self.last_active_ts = new_timestamp

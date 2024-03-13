@@ -9,8 +9,8 @@ from strawberry.fastapi import GraphQLRouter
 
 # Internal modules
 from app.database import database, engine
-from app.database.models import base
-from app.graphql import query, mutation
+from app.database.models import Base
+from app.graphql import Query, Mutation
 
 Base.metadata.create_all(engine)
 
@@ -30,7 +30,7 @@ def get_db():
 
 
 def graphql_app():
-    app_schema = Schema(query=query, mutation=mutation)
+    app_schema = Schema(query=Query, mutation=Mutation)
     gql_app = GraphQLRouter(app_schema)
 
     return gql_app
@@ -44,7 +44,7 @@ def app():
         allow_methods=["*"],
         allow_headers=["*"]
     )
-    fastapi.include_router(graphql_app(), prefix="/graphql")
+    fastapi.include_router(graphql_app(), prefix="/gql")
 
     return fastapi
 

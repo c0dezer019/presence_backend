@@ -1,7 +1,6 @@
 from sqlalchemy import Column, Integer, ForeignKey, Table
 
-from app.database.database import Base
-
+from app.database.models import Base
 
 members_guilds = Table(
     "members_guilds",

@@ -1,1 +1,1 @@
-from app.database.utils.get_or_create_one import get_or_create_one
+from app.database.utils.get import get_all, get_or_create_one
