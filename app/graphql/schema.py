@@ -1,20 +1,24 @@
-import strawberry
+# Internal Modules
 from datetime import datetime
 from typing import Optional, NewType
 
-from app.graphql.resolvers import resolve
+# External modules
+import strawberry
+from fastapi import HTTPException
+from sqlalchemy.exc import NoResultFound
 
+# Internal modules
+from app.graphql.resolvers import resolve
 
 Snowflake = strawberry.scalar(
     NewType("Snowflake", strawberry.ID), serialize=lambda v: v, parse_value=lambda v: v
 )
-
-
 Dict = strawberry.scalar(
     NewType("Dict", dict), serialize=lambda v: v, parse_value=lambda v: v
 )
-
-
+Discriminator = strawberry.scalar(
+    NewType("Discriminator", int), serialize=lambda v: v, parse_value=lambda v: v
+)
 Set = strawberry.scalar(
     NewType("Set", set), serialize=lambda v: v, parse_value=lambda v: v
 )
@@ -53,8 +57,8 @@ class Member(User):
     last_active_channel: Optional[Snowflake] = strawberry.UNSET
     last_active_ts: Optional[datetime] = strawberry.UNSET
     idle_times: Optional[list[int]] = strawberry.UNSET
-    avg_idle_time: Optional[int] = strawberry.UNSET
-    recent_avgs: Optional[list[int]] = strawberry.UNSET
+    average_idle_time: Optional[int] = strawberry.UNSET
+    recent_averages: Optional[list[int]] = strawberry.UNSET
     status: Optional[str] = strawberry.UNSET
     date_added: Optional[datetime] = strawberry.UNSET
     flags: Optional[list[str]] = strawberry.UNSET
@@ -63,14 +67,14 @@ class Member(User):
 @strawberry.type
 class MemberResult:
     code: int
-    errors: Optional[list[str]] = strawberry.UNSET
+    error: Optional[str] = strawberry.UNSET
     member: Optional[Member | NewMember] = strawberry.UNSET
 
 
 @strawberry.type
 class MembersResult:
     code: int
-    errors: Optional[list[str]] = strawberry.UNSET
+    error: Optional[str] = strawberry.UNSET
     members: Optional[Set] = strawberry.UNSET
 
 
@@ -98,8 +102,8 @@ class Guild(Server):
     last_active_channel: Optional[Snowflake] = strawberry.UNSET
     last_active_ts: Optional[datetime] = strawberry.UNSET
     idle_times: Optional[list[int]] = strawberry.UNSET
-    avg_idle_time: Optional[int] = strawberry.UNSET
-    recent_avgs: Optional[list[int]] = strawberry.UNSET
+    average_idle_time: Optional[int] = strawberry.UNSET
+    recent_averages: Optional[list[int]] = strawberry.UNSET
     status: Optional[str] = strawberry.UNSET
     settings: Optional[Dict] = strawberry.UNSET
     members: Optional[Set] = strawberry.UNSET
@@ -109,30 +113,48 @@ class Guild(Server):
 @strawberry.type
 class GuildResult:
     code: int
-    errors: Optional[list[str]] = strawberry.UNSET
+    error: Optional[str] = strawberry.UNSET
     guild: Optional[Guild] = strawberry.UNSET
 
 
 @strawberry.type
 class GuildsResult:
     code: int
-    errors: Optional[list[str]] = strawberry.UNSET
+    error: Optional[str] = strawberry.UNSET
     guilds: Optional[Set] = strawberry.UNSET
 
 
 @strawberry.type
 class Query:
-    members: Optional[MembersResult] = strawberry.UNSET
-    member: Optional[MemberResult] = strawberry.UNSET
-    guilds: Optional[GuildsResult] = strawberry.UNSET
-    guild: Optional[GuildResult] = strawberry.UNSET
+    @strawberry.field
+    def member(
+            self,
+            guild_id: Snowflake,
+            guild_name: str,
+            member_id: Snowflake,
+            username: str,
+            discriminator: Discriminator,
+            nickname: Optional[str] = "",
+    ) -> MemberResult:
+        member = resolve.member(
+            guild_id, guild_name, member_id, username, discriminator, nickname
+        )
+
+        return MemberResult(200, member=Member(*member.values()))
+
+    @strawberry.field
+    def members(self) -> MembersResult:
+        try:
+            return resolve.members()
+        except NoResultFound:
+            return MembersResult(500, error='Something went wrong while fetching members.')
 
 
 @strawberry.type
 class DeleteResult:
     code: int
     success_msg: Optional[str] = strawberry.UNSET
-    errors: Optional[list[str]] = strawberry.UNSET
+    error: Optional[str] = strawberry.UNSET
 
 
 @strawberry.input
@@ -148,8 +170,8 @@ class GuildUpdate:
     last_active_channel: Optional[Snowflake] = strawberry.UNSET
     last_active_ts: Optional[datetime] = strawberry.UNSET
     idle_times: Optional[list[int]] = strawberry.UNSET
-    avg_idle_time: Optional[int] = strawberry.UNSET
-    recent_avgs: Optional[list[int]] = strawberry.UNSET
+    average_idle_time: Optional[int] = strawberry.UNSET
+    recent_averages: Optional[list[int]] = strawberry.UNSET
     status: Optional[str] = strawberry.UNSET
     settings: Optional[Dict] = strawberry.UNSET
     members: Optional[Set] = strawberry.UNSET
@@ -176,56 +198,108 @@ class MemberUpdate:
     last_active_channel: Optional[Snowflake] = strawberry.UNSET
     last_active_ts: Optional[datetime] = strawberry.UNSET
     idle_times: Optional[list[int]] = strawberry.UNSET
-    avg_idle_time: Optional[int] = strawberry.UNSET
-    recent_avgs: Optional[list[int]] = strawberry.UNSET
+    average_idle_time: Optional[int] = strawberry.UNSET
+    recent_averages: Optional[list[int]] = strawberry.UNSET
     flags: Optional[list[str]] = strawberry.UNSET
     status: Optional[str] = strawberry.UNSET
 
 
 @strawberry.type
-class Mutation:
+class GuildMutations:
     @strawberry.mutation
-    def create_member(self, input: MemberCreate) -> MemberResult:
+    def create_guild(self, _input: GuildCreate) -> GuildResult:
         try:
-            resolve.create_guild(
-                member_id=input.member_id,
-                username=input.username,
-                discriminator=input.discriminator,
+            resolve.guild(_input.guild_id, _input.name)
+
+            return GuildResult(code=200, guild=NewGuild(Snowflake(_input.guild_id), _input.name))
+        except HTTPException as http_e:
+            return GuildResult(
+                code=500,
+                error=f'{_input.guild_id} cannot be created: {http_e.detail}\n\n{http_e.with_traceback()}',
+            )
+
+    @strawberry.mutation
+    def update_guild(
+            self, guild_id: Snowflake, guild_name: str, _input: GuildUpdate
+    ) -> GuildResult:
+        resolve.update_guild(guild_id, guild_name, *_input.__dict__.values())
+
+        return GuildResult(200, guild=Guild(Snowflake(guild_id), guild_name, *_input.__dict__.values()))
+
+    @strawberry.mutation
+    def delete_guild(self, guild_id: Snowflake) -> DeleteResult:
+        try:
+            resolve.delete_guild(guild_id)
+
+            return DeleteResult(200, f"{guild_id} successfully deleted.")
+        except NoResultFound:
+            return DeleteResult(
+                500, error=f"{guild_id} does not exist within the database, cannot delete."
+            )
+
+
+@strawberry.type
+class MemberMutations:
+    @strawberry.mutation
+    def create_member(
+            self,
+            _input: MemberCreate,
+            guild_id: Snowflake,
+            guild_name: str,
+            nickname: Optional[str] = None,
+    ) -> MemberResult:
+        try:
+            resolve.member(
+                guild_id,
+                guild_name,
+                _input.member_id,
+                _input.username,
+                _input.discriminator,
+                nickname,
             )
 
             return MemberResult(
-                code=200,
+                200,
                 member=NewMember(
-                    member_id=Snowflake(input.member_id),
-                    discriminator=input.discriminator,
-                    username=input.username,
-                    nickname=input.nickname,
-                    flags=input.flags,
+                    Snowflake(_input.member_id),
+                    _input.discriminator,
+                    _input.username,
+                    _input.nickname,
                 ),
             )
-        except Exception:
-            return MemberResult(
-                code=500,
-                errors=[
-                    "An error occurred while trying to create the member. Please try again later."
-                ],
-            )
+        except HTTPException as http_e:
+            return MemberResult(500, error=f"{_input.member_id} cannot be created.")
 
     @strawberry.mutation
-    def update_member(self, input: MemberUpdate) -> MemberResult:
+    def update_member(self, _input: MemberUpdate) -> MemberResult:
         return MemberResult(
-            code=200,
+            200,
             member=Member(
-                member_id=Snowflake(strawberry.ID(str(input.member_id))),
-                username=input.username,
-                discriminator=input.discriminator,
+                member_id=Snowflake(strawberry.ID(str(_input.member_id))),
+                username=_input.username,
+                discriminator=_input.discriminator,
             ),
         )
 
-    create_guild: GuildResult
-    update_guild: GuildResult
-    delete_guild: DeleteResult
-    delete_member: DeleteResult
+    @strawberry.mutation
+    def delete_member(self, guild_id: Snowflake, member_id: Snowflake) -> DeleteResult:
+        try:
+            resolve.delete_member_shard(guild_id, member_id)
+
+            return DeleteResult(200, f"{member_id} has been removed from {guild_id}")
+        except Exception:
+            return DeleteResult(500, f"{member_id} could not be removed from {guild_id}")
+
+
+@strawberry.type
+class Mutation:
+    @strawberry.field
+    def guild(self) -> GuildMutations:
+        return GuildMutations()
+
+    @strawberry.field
+    def member(self) -> MemberMutations:
+        return MemberMutations()
 
 
 schema = strawberry.Schema(query=Query, mutation=Mutation)

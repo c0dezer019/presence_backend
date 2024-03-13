@@ -1,3 +1,4 @@
-from app.graphql.resolvers.resolver import Resolver  # noqa: F401
+from app.database import database
+from app.graphql.resolvers.resolver import Resolver
 
-resolve = Resolver()
+resolve = Resolver(database.session)
