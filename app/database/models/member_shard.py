@@ -1,5 +1,4 @@
 # Standard modules
-
 from datetime import datetime
 
 from arrow import now
