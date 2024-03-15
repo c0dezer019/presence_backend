@@ -88,13 +88,6 @@ class Server:
 
 
 @strawberry.type
-class NewGuild(Server):
-    guild_id: Snowflake
-    name: str
-    date_added: Optional[datetime] = strawberry.UNSET
-
-
-@strawberry.type
 class Guild(Server):
     guild_id: Snowflake
     name: Optional[str] = strawberry.UNSET
@@ -136,18 +129,24 @@ class Query:
             discriminator: Discriminator,
             nickname: Optional[str] = "",
     ) -> MemberResult:
-        member = resolve.member(
-            guild_id, guild_name, member_id, username, discriminator, nickname
-        )
+        try:
+            member = resolve.member(
+                guild_id, guild_name, member_id, username, discriminator, nickname
+            )
 
-        return MemberResult(200, member=Member(*member.values()))
+            return MemberResult(200, member=Member(*member.values()))
+        except HTTPException as http_e:
+            return MemberResult(500, error=f'Unable to get member {member_id}: {http_e.detail}')
 
     @strawberry.field
-    def members(self) -> MembersResult:
+    def members(self, guild_id: Snowflake) -> MembersResult:
         try:
-            return resolve.members()
-        except NoResultFound:
-            return MembersResult(500, error='Something went wrong while fetching members.')
+            members = resolve.members(guild_id)
+
+            return MembersResult(200, members=members)
+        except HTTPException as http_e:
+            return MembersResult(404, error=f'Something went wrong while fetching members for guild {guild_id}: '
+                                            f'{http_e.detail}')
 
 
 @strawberry.type
@@ -211,7 +210,9 @@ class GuildMutations:
         try:
             resolve.guild(_input.guild_id, _input.name)
 
-            return GuildResult(code=200, guild=NewGuild(Snowflake(_input.guild_id), _input.name))
+            return GuildResult(code=200, guild=Guild(
+                guild_id=Snowflake(strawberry.ID(_input.guild_id)),
+                name=_input.name))
         except HTTPException as http_e:
             return GuildResult(
                 code=500,
@@ -220,11 +221,11 @@ class GuildMutations:
 
     @strawberry.mutation
     def update_guild(
-            self, guild_id: Snowflake, guild_name: str, _input: GuildUpdate
+            self, guild_id: int, _input: GuildUpdate
     ) -> GuildResult:
-        resolve.update_guild(guild_id, guild_name, *_input.__dict__.values())
+        resolve.update_guild(guild_id, *_input.__dict__.values())
 
-        return GuildResult(200, guild=Guild(Snowflake(guild_id), guild_name, *_input.__dict__.values()))
+        return GuildResult(200, guild=Guild(guild_id, *_input.__dict__.values()))
 
     @strawberry.mutation
     def delete_guild(self, guild_id: Snowflake) -> DeleteResult:
@@ -268,18 +269,33 @@ class MemberMutations:
                 ),
             )
         except HTTPException as http_e:
-            return MemberResult(500, error=f"{_input.member_id} cannot be created.")
+            return MemberResult(500, error=f"{_input.member_id} cannot be created: {http_e.detail}")
 
     @strawberry.mutation
-    def update_member(self, _input: MemberUpdate) -> MemberResult:
-        return MemberResult(
-            200,
-            member=Member(
-                member_id=Snowflake(strawberry.ID(str(_input.member_id))),
-                username=_input.username,
-                discriminator=_input.discriminator,
-            ),
-        )
+    def update_member(self, member_id: Snowflake, guild_id: Snowflake, _input: MemberUpdate) -> MemberResult:
+        """
+        Updates a member_shard row.
+
+        :param member_id: Discord user ID.
+
+        :param guild_id: Discord server ID.
+
+        :param _input: object containing data to update.
+
+        :return: An instance of MemberResult.
+        """
+
+        try:
+            resolve.update_member_shard(member_id, guild_id, **_input)
+            return MemberResult(
+                200,
+                member=Member(
+                    member_id=Snowflake(strawberry.ID(str(member_id))),
+                    *_input.__dict__.values()
+                ),
+            )
+        except HTTPException as http_e:
+            return MemberResult(500, error=f'')
 
     @strawberry.mutation
     def delete_member(self, guild_id: Snowflake, member_id: Snowflake) -> DeleteResult:
@@ -287,8 +303,8 @@ class MemberMutations:
             resolve.delete_member_shard(guild_id, member_id)
 
             return DeleteResult(200, f"{member_id} has been removed from {guild_id}")
-        except Exception:
-            return DeleteResult(500, f"{member_id} could not be removed from {guild_id}")
+        except HTTPException as http_e:
+            return DeleteResult(500, f"{member_id} could not be removed from {guild_id}: {http_e.detail}")
 
 
 @strawberry.type

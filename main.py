@@ -10,7 +10,7 @@ from strawberry.fastapi import GraphQLRouter
 # Internal modules
 from app.database import database, engine
 from app.database.models import Base
-from app.graphql import Query, Mutation
+from app.graphql.schema import Query, Mutation
 
 Base.metadata.create_all(engine)
 

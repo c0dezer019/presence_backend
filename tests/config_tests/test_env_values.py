@@ -1,8 +1,9 @@
-'''This should test the configuration of SQLAlchemy'''
+"""This should test the configuration of SQLAlchemy"""
 
 # Third Party modules
 import pytest
 from dotenv import dotenv_values
+
 
 @pytest.mark.parametrize("dev_env_value", dotenv_values(".env").items())
 def test_env_values(dev_env_value):

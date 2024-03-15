@@ -10,8 +10,8 @@ from sqlalchemy.orm import Session
 
 # Internal modules
 from app.database.models import Guild, MemberShard
-from utils import rel
-from utils.types import Snowflake, Query, Model
+from app.graphql.lib.types import Snowflake, Query, Model
+from utils.logging import rel
 
 
 def get_all(
@@ -21,19 +21,13 @@ def get_all(
     Gets all rows for the provided model. If a MemberShard and a guild_id is passed,
     it will get all MemberShards for the specified guild.
 
-    keyword arguments:
-
     :param db: The db session
-    :type db: Session
 
     :param model: MemberShard | Guild
-    :type model: Type[Guild | MemberShard]
 
     :param guild_id: Snowflake (int)
-    :type guild_id: int
 
     :returns: A Sequence of Guild or MemberShard rows.
-    :rtype: Sequence[Guild | MemberShard]
     """
 
     if guild_id and model.__qualname__ == 'MemberShard':
@@ -49,19 +43,13 @@ def get_or_create_one(db: Session, model: Type[Guild | MemberShard], **kwargs: o
     """
     Either returns a Guild|MemberShard row or creates it and then returns it.
 
-    Keyword arguments:
-
     :param db: The database session to be used to create the rows.
-    :type db: Session
 
     :param model: MemberShard|Guild model
-    :type model: Type[Guild | MemberShard]
 
     :param kwargs: The values to add or search rows with.
-    :type kwargs: dict
 
     :return: A tuple of either a Guild or MemberShard and a bool.
-    :rtype: Tuple[DBRow, bool] | Tuple[Guild | MemberShard, bool]
     """
 
     try:

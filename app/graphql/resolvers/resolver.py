@@ -14,8 +14,8 @@ from sqlalchemy.sql.dml import ReturningUpdate
 # Internal modules
 from app.database.models import Guild, MemberShard
 from app.database.utils import get_or_create_one, get_all
-from utils import rel
-from utils.types import Discriminator, Snowflake
+from app.graphql.lib.types import Discriminator, Snowflake
+from utils.logging import rel
 
 
 class Resolver:
@@ -105,13 +105,13 @@ class Resolver:
 
             raise HTTPException(status_code=404, detail=f'No members found for {guild_id}.')
 
-    def update_guild(self, guild_id: Snowflake, c_name: str, **kwargs) -> Guild:
+    def update_guild(self, guild_id: Snowflake, **kwargs) -> Guild:
         try:
             logging.info(f'attempting to update guild ID {guild_id}...')
 
             upd: ReturningUpdate[Tuple[Guild]] = (
                 update(Guild)
-                .where(and_(Guild.guild_id == guild_id, Guild.name == c_name))
+                .where(Guild.guild_id == guild_id)
                 .values(**kwargs)
                 .returning(Guild)
             )

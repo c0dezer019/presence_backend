@@ -1,8 +1,6 @@
-from typing import List
-
 import pytest
 from fastapi import HTTPException
-from sqlalchemy.exc import IntegrityError, NoResultFound
+from sqlalchemy.exc import NoResultFound
 
 from app.database import engine
 from app.database.models import Base, Guild, MemberShard
@@ -44,7 +42,7 @@ class TestResolvers:
         assert isinstance(guild, Guild)
         assert guild.guild_id == guild_id
         assert guild.name == name
-        assert guild in resolver.db.session
+        assert guild in resolver.db
 
     def test_create_member_success(self, resolver, member, guild):
         member_id = 456
@@ -56,7 +54,7 @@ class TestResolvers:
         assert member.username == username
         assert member.discriminator == discriminator
         assert member.guild_id == guild.guild_id
-        assert member in resolver.db.session
+        assert member in resolver.db
 
     def test_update_existing_guild_with_valid_guild_id_and_kwargs(self, resolver):
         updated_guild = resolver.update_guild(1234, name="Updated Guild Name")

@@ -1,16 +1,22 @@
+# Internal modules
 from os import getenv
 
+# External modules
 from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool, QueuePool
 
-from utils.types import Url
+from app.database.lib.types import Url
 
 load_dotenv()
 
 
 class Database:
+    """
+    The Database
+    """
+
     @staticmethod
     def _create_db_url(mode: str) -> Url:
         database = getenv("DEV_DB")
