@@ -161,4 +161,5 @@ cython_debug/
 .prettierrc
 .vscode
 .idea
-test.py
+app/graphql/test.py
+/logs

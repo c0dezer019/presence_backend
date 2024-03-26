@@ -1,4 +1,5 @@
 from app.database.database import Database
 
-database = Database()
-engine = database.engine
+db = Database()
+session = db.session
+engine = db.engine

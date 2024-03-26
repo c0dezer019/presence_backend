@@ -1,4 +1,4 @@
-from app.database import database
+from app.database import db
 from app.graphql.resolvers.resolver import Resolver
 
-resolve = Resolver(database.session)
+resolve = Resolver(db.session)

@@ -9,17 +9,15 @@ requests = "*"
 python-dotenv = "*"
 psycopg2-binary = "*"
 wheel = "*"
-ariadne = "*"
 arrow = "*"
 python-dateutil = "*"
 uvicorn = "*"
 strawberry-graphql = {extras = ["debug-server"], version = "*"}
 fastapi = "*"
 bs4 = "*"
+colorlog = "*"
 
 [dev-packages]
-"sphinxcontrib.osexample" = "*"
-sphinx = "*"
 pytest = "*"
 pytest-reportlog = "*"
 httpx = "*"

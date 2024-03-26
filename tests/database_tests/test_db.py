@@ -4,13 +4,13 @@ Test to make sure database is properly setup.
 
 import pytest
 
-from app.database import database
+from app.database import db
 
 
 class TestDB:
     @pytest.fixture
     def db(self):
-        session = database
+        session = db
 
         yield session
 
