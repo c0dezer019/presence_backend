@@ -6,14 +6,15 @@ import logging
 from typing import List, Optional, Type, Tuple
 
 from fastapi import HTTPException
-from sqlalchemy import update, select, and_
+from sqlalchemy import update, select, and_, Sequence
 from sqlalchemy.exc import NoResultFound, IntegrityError
 from sqlalchemy.orm import Session
+from sqlalchemy.orm.exc import FlushError
 from sqlalchemy.sql.dml import ReturningUpdate
 
 # Internal modules
 from app.database.models import Guild, MemberShard
-from app.database.utils import get_or_create_one, get_all
+from app.database.utils import get_or_create_one, get_all, create_one_guild, bulk_create_guilds
 from app.graphql.lib.types import Discriminator, Snowflake
 from utils.logging import rel
 
@@ -22,9 +23,50 @@ class Resolver:
     def __init__(self, session: Session):
         self.db = session
 
-    def guild(self, guild_id: Snowflake, name: str) -> Guild:
-        logging.info(f'Finding or creating guild {name}.')
-        guild: Tuple[Guild, bool] = get_or_create_one(self.db, Guild, guild_id=guild_id, name=name)
+    def create_guild(self, guild_id: Snowflake, name: str, **kwargs) -> Tuple[int, Guild]:
+        logger.info(f'Creating guild {name}.')
+
+        try:
+            guild: Guild = create_one_guild(self.db, Guild, guild_id, name, **kwargs)
+
+            return 200, guild
+        except TypeError:
+            logger.error(f'TypeError while attempting to create {Guild.__qualname__}.')
+            logger.exception(f'{create_one_guild.__module__} received incorrect arguments:\n\n{__file__}')
+
+            raise HTTPException(status_code=500, detail=f'Incorrect arguments received: {kwargs}.', traceback=True)
+
+        except FlushError as fe:
+            logger.exception(f'{rel(__file__)}.{create_one_guild.__name__}: {fe}')
+
+            raise HTTPException(500, f'Error while flushing: {fe}', traceback=True)
+
+        except IntegrityError as ie:
+            logger.exception(f'{rel(__file__)}.{create_one_guild.__name__}:' f' {ie.detail}')
+
+            raise HTTPException(status_code=409,
+                                detail=f'{rel(__file__)}.{create_one_guild.__name__} ({create_one_guild.__module__}): '
+                                       f'{ie.detail}',
+                                traceback=True)
+
+    def create_guilds(self, bulk_data: List[Guild.__dict__]) -> Tuple[int, Sequence[Guild]]:
+        try:
+            logger.info('Attempting to create guilds.')
+
+            guilds: Sequence[Guild] = bulk_create_guilds(self.db, bulk_data)
+            logger.info('Guilds created')
+
+            return 200, guilds
+        except TypeError as te:
+            logger.error(f'bulk_data contained incorrect data: {bulk_data}')
+            logger.exception(te)
+
+            raise HTTPException(500, detail=f'bulk_data contained invalid data: {bulk_data}')
+
+    def guild(self, guild_id: Snowflake, name: str) -> Tuple[int, Guild]:
+        logger.info(f'Finding or creating guild {name}.')
+        try:
+            guild: Tuple[Guild, bool] = get_or_create_one(self.db, Guild, guild_id=guild_id, name=name)
 
         return guild[0]
 

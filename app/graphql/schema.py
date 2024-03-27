@@ -1,11 +1,11 @@
 # Internal Modules
 from datetime import datetime
-from typing import Optional, NewType
+from typing import Optional, NewType, List, Tuple
 
 # External modules
 import strawberry
 from fastapi import HTTPException
-from sqlalchemy.exc import NoResultFound
+from sqlalchemy import Sequence
 
 # Internal modules
 from app.graphql.resolvers import resolve
@@ -208,24 +208,31 @@ class GuildMutations:
     @strawberry.mutation
     def create_guild(self, _input: GuildCreate) -> GuildResult:
         try:
-            resolve.guild(_input.guild_id, _input.name)
+            guild: Tuple[int, Guild] = resolve.create_guild(_input.guild_id, _input.name)
 
-            return GuildResult(code=200, guild=Guild(
-                guild_id=Snowflake(strawberry.ID(_input.guild_id)),
-                name=_input.name))
+            return GuildResult(code=guild[0], guild=guild[1])
         except HTTPException as http_e:
-            return GuildResult(
-                code=500,
-                error=f'{_input.guild_id} cannot be created: {http_e.detail}\n\n{http_e.with_traceback()}',
-            )
+            return GuildResult(code=http_e.status_code, error=http_e.detail)
+
+    @strawberry.mutation
+    def create_guilds(self, bulk_data: List[Guild.__dict__]) -> GuildsResult:
+        try:
+            guilds: Tuple[int, Sequence[Guild]] = resolve.create_guilds(bulk_data)
+
+            return GuildsResult(code=guilds[0], guilds=guilds[1])
+        except HTTPException as http_e:
+            return GuildsResult(code=http_e.status_code, error=http_e.detail)
 
     @strawberry.mutation
     def update_guild(
             self, guild_id: int, _input: GuildUpdate
     ) -> GuildResult:
-        resolve.update_guild(guild_id, *_input.__dict__.values())
+        try:
+            updated: Tuple[int, Guild] = resolve.update_guild(guild_id, *_input.__dict__.values())
 
-        return GuildResult(200, guild=Guild(guild_id, *_input.__dict__.values()))
+            return GuildResult(updated[0], guild=updated[1])
+        except HTTPException as http_e:
+            return GuildResult(http_e.status_code, error=f'Cannot update guild {guild_id}: {http_e.detail}')
 
     @strawberry.mutation
     def delete_guild(self, guild_id: Snowflake) -> DeleteResult:
@@ -233,9 +240,9 @@ class GuildMutations:
             resolve.delete_guild(guild_id)
 
             return DeleteResult(200, f"{guild_id} successfully deleted.")
-        except NoResultFound:
+        except HTTPException as http_e:
             return DeleteResult(
-                500, error=f"{guild_id} does not exist within the database, cannot delete."
+                http_e.status_code, error=http_e.detail
             )
 
 

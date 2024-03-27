@@ -13,7 +13,6 @@ from sqlalchemy import (
     ForeignKey,
     Integer,
     String,
-    func,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -36,17 +35,19 @@ class MemberShard(Base):
     last_active_server: Mapped[int] = mapped_column(BigInteger, default=0)
     last_active_channel: Mapped[int] = mapped_column(BigInteger, default=0)
     last_active_ts: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(),
-        default=Arrow(1970, 1, 1, 0, 0, tzinfo=gettz("US/Central")).datetime  # type:ignore
-    )
+        DateTime(timezone=True),
+        server_default=Arrow(1970, 1, 1, 0, 0, tzinfo=gettz("US/Central")).datetime.isoformat(),
+        default=Arrow(1970, 1, 1, 0, 0, tzinfo=gettz("US/Central")).datetime)
     idle_times: Mapped[list[int]] = mapped_column(ARRAY(Integer), default=[])
     # Instant average like an instant MPG in the car.
     average_idle_time: Mapped[int] = mapped_column(Integer, default=0)
     recent_averages: Mapped[list[int]] = mapped_column(ARRAY(Integer), default=[])
     # Overall Discord status. Not representative of individual servers.
     status: Mapped[str] = mapped_column(String, nullable=False, server_default="new")
-    date_added: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(),
-                                                 default=now(gettz("US/Central")).datetime)
+    date_added: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=now(gettz('US/Central')).datetime.isoformat(),
+        default=now(gettz("US/Central")).datetime)
 
     def __repr__(self):
         return (
