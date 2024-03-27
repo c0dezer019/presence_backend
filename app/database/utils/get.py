@@ -1,25 +1,26 @@
 # Internal modules
-import logging
 from typing import Type, Optional
 
 # Third-party modules
-from fastapi import HTTPException
 from sqlalchemy import select, Sequence
-from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 # Internal modules
 from app.database.models import Guild, MemberShard
-from app.graphql.lib.types import Snowflake, Query, Model
-from utils.logging import rel
+from app.graphql.lib.types import Snowflake, Model, Query
+from app.utils.logging import Logger
+
+__name__ = '__get__'
+
+logger = Logger(__file__, __name__)
 
 
 def get_all(
-    db: Session, model: Type[Guild | MemberShard], guild_id: Optional[Snowflake] = 0
+        db: Session, model: Type[Guild | MemberShard], guild_id: Optional[Snowflake] = None
 ) -> Sequence[Guild | MemberShard]:
     """
-    Gets all rows for the provided model. If a MemberShard and a guild_id is passed,
-    it will get all MemberShards for the specified guild.
+    Gets all rows for the provided model. If a MemberShard and a guild_id is passed, it will get all MemberShards for
+    the specified guild. Otherwise, it will fetch all rows for the given Model.
 
     :param db: The db session
 
@@ -31,11 +32,15 @@ def get_all(
     """
 
     if guild_id and model.__qualname__ == 'MemberShard':
-        _all: Sequence[Guild] = db.execute(
-            select(model).filter_by(guild_id=guild_id)
-        ).scalars().unique().all()
+        logger.info(f'Getting all MemberShards of {guild_id}.', guild_id)
+
+        _all: Sequence[Guild] = db.execute(select(model).filter_by(guild_id=guild_id)).scalars().unique().all()
+
     else:
+        logger.info(f'Retrieving all rows of "{model.__tablename__}."')
+
         _all: Sequence[MemberShard | Guild] = db.execute(select(model)).scalars().unique().all()
+
     return _all
 
 
@@ -52,44 +57,26 @@ def get_or_create_one(db: Session, model: Type[Guild | MemberShard], **kwargs: o
     :return: A tuple of either a Guild or MemberShard and a bool.
     """
 
-    try:
-        instance: Model = db.scalars(select(model).filter_by(**kwargs)).unique().one_or_none()
+    instance: Model = db.scalars(select(model).filter_by(**kwargs)).unique().one_or_none()
 
-        if instance:
-            logging.info(
-                f'{instance} with ID {instance.guild_id if type(instance) is Guild else instance.member_id} found.'
-            )
-
-            return instance, False
-        else:
-            logging.info('Not found, creating...')
-            instance: Guild | MemberShard = model(**kwargs)
-
-            db.add(instance)
-            db.commit()
-
-            logging.info(
-                f'{model.__qualname__} created with with ID '
-                f'{instance.guild_id if type(instance) is Guild else instance.member_id}'
-            )
-
-            return instance, True
-
-    except TypeError:
-        logging.error(f'TypeError while attempting to get or create {model.__qualname__}.')
-        logging.exception(
-            f'{get_or_create_one.__module__} received incorrect arguments:\n\n{__file__}',
-            stack_info=True,
+    if instance:
+        logger.info(
+            f'{instance} with ID {instance.guild_id if type(instance) is Guild else instance.member_id} found.',
+            instance.guild_id
         )
 
-        raise HTTPException(status_code=500, detail=f'Incorrect arguments received: {kwargs}.', traceback=True)
+        return instance, False
+    else:
+        logger.info('Not found, creating...', instance.guild_id)
+        instance: Model = model(**kwargs)
 
-    except IntegrityError as ie:
-        logging.exception(
-            f'{rel(__file__)}.{get_or_create_one.__name__}:' f' {ie.detail}', stack_info=True
+        db.add(instance)
+        db.commit()
+
+        logger.info(
+            f'{model.__qualname__} created with with ID '
+            f'{instance.guild_id if type(instance) is Guild else instance.member_id}',
+            instance.guild_id
         )
 
-        raise HTTPException(status_code=500,
-                            detail=f'{rel(__file__)}.{get_or_create_one.__name__} ({get_or_create_one.__module__}): '
-                                   f'{ie.detail}',
-                            traceback=True)
+        return instance, True
