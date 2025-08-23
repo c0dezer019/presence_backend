@@ -1,6 +1,3 @@
-import logging
-from logging.handlers import RotatingFileHandler
-
 # Third part modules
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -8,11 +5,14 @@ from strawberry import Schema
 from strawberry.fastapi import GraphQLRouter
 
 # Internal modules
-from app.database import database, engine
+from app.database import db, engine
 from app.database.models import Base
 from app.graphql.schema import Query, Mutation
+from app.utils.logging import rel, Logger
 
 Base.metadata.create_all(engine)
+
+logger = Logger(rel(__file__), __name__).logger()
 
 origins = [
     "http://localhost:8000",
@@ -22,11 +22,11 @@ origins = [
 
 
 def get_db():
-    db = database.database()
+    _db = db.session
     try:
-        yield db
+        yield _db
     finally:
-        db.close()
+        _db.close()
 
 
 def graphql_app():
@@ -44,16 +44,9 @@ def app():
         allow_methods=["*"],
         allow_headers=["*"]
     )
-    fastapi.include_router(graphql_app(), prefix="/gql")
 
+    fastapi.include_router(graphql_app(), prefix="/gql")
     return fastapi
 
 
-if __name__ == "__main__":
-    logging.basicConfig()
-    logger = logging.getLogger()
-    logger.setLevel(logging.INFO)
-    handler = RotatingFileHandler("server_log.txt", max_Bytes=500000, backupCount=5)
-    formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(process)d - %(message)s")
-    handler.setFormatter(formatter)
-    logger.addHandler(handler)
+_app = app()

@@ -40,7 +40,7 @@ class Database:
 
     def __init__(self):
         self.engine = create_engine(
-            self._create_db_url(getenv("MODE")),
+            self._create_db_url(getenv("MODE", "development")),
             echo=True if getenv("MODE") == "development" or getenv("MODE") == "testing" else False,
             poolclass=StaticPool if getenv("MODE") == "testing" else QueuePool
         )

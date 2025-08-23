@@ -39,7 +39,7 @@ class Logger:
         self._stack_info = stack_info
         self._logger = getLogger(module)
         self._logger.setLevel(INFO)
-        self._handler = RotatingFileHandler(f'logs/{file_name}', maxBytes=500000, backupCount=5)
+        self._handler = RotatingFileHandler(f'logs/{self._file}', maxBytes=500000, backupCount=5)
         self._formatter = Formatter('%(name)s: %(asctime)s | %(levelname)s | %(filename)s%(lineno)s | %(process)d | '
                                     '%(src)s >>> %(message)s')
         self._handler.setFormatter(self._formatter)

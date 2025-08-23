@@ -15,3 +15,9 @@ extend-exclude = '''
   dist
 )/
 '''
+
+[tool.pyright]
+reportArgumentType = false
+reportInvalidTypeForm = false
+reportIncompatibleVariableOverride = false
+reportGeneralTypeIssues = false
