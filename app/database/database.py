@@ -1,12 +1,14 @@
-# Internal modules
+# Standard modules
 from os import getenv
 
+# Third party modules
 # External modules
 from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import StaticPool, QueuePool
+from sqlalchemy.pool import QueuePool, StaticPool
 
+# Internal modules
 from app.database.lib.types import Url
 
 load_dotenv()

@@ -1,7 +1,9 @@
+# Third party modules
 import pytest
 from fastapi import HTTPException
 from sqlalchemy.exc import NoResultFound
 
+# Internal modules
 from app.database import engine
 from app.database.models import Base, Guild, MemberShard
 from app.graphql.resolvers import Resolver
@@ -31,7 +33,9 @@ class TestResolvers:
         username = "Test User"
         discriminator = 1234
 
-        member = resolver.member(guild_id, guild_name, member_id, username, discriminator)
+        member = resolver.member(
+            guild_id, guild_name, member_id, username, discriminator
+        )
 
         return member
 
@@ -40,7 +44,7 @@ class TestResolvers:
         name = "Test Guild"
 
         assert isinstance(guild, Guild)
-        assert guild.guild_id == guild_id
+        assert guild.snowflake == guild_id
         assert guild.name == name
         assert guild in resolver.db
 
@@ -50,7 +54,7 @@ class TestResolvers:
         discriminator = 1234
 
         assert isinstance(member, MemberShard)
-        assert member.member_id == member_id
+        assert member.snowflake == member_id
         assert member.username == username
         assert member.discriminator == discriminator
         assert member.guild_id == guild.guild_id
@@ -60,23 +64,30 @@ class TestResolvers:
         updated_guild = resolver.update_guild(1234, name="Updated Guild Name")
 
         assert isinstance(updated_guild, Guild)
-        assert updated_guild.guild_id == 1234
+        assert updated_guild.snowflake == 1234
         assert updated_guild.name == "Updated Guild Name"
 
-    def test_create_new_guild_with_existing_guild_id_raises_http_exception(self, resolver):
-
+    def test_create_new_guild_with_existing_guild_id_raises_http_exception(
+        self, resolver
+    ):
         with pytest.raises(HTTPException) as exc_info:
             resolver.guild(1234, "Test Guild2")
 
             assert exc_info.value.status_code == 400
-            assert exc_info.value.detail == "You cannot create another guild with a duplicate ID."
+            assert (
+                exc_info.value.detail
+                == "You cannot create another guild with a duplicate ID."
+            )
 
     def test_create_a_member_shard_with_a_duplicate_discriminator(self, resolver):
         with pytest.raises(HTTPException) as exc_info:
             resolver.member(1234, "Test Guild", 789, "Test User", 1234)
 
             assert exc_info.value.status_code == 400
-            assert exc_info.value.detail == "You cannot create another member with a duplicate discriminator."
+            assert (
+                exc_info.value.detail
+                == "You cannot create another member with a duplicate discriminator."
+            )
 
     def test_update_non_existing_guild(self, resolver):
         with pytest.raises(NoResultFound):

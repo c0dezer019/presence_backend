@@ -2,8 +2,10 @@
 Test to make sure database is properly setup.
 """
 
+# Third party modules
 import pytest
 
+# Internal modules
 from app.database import db
 
 

@@ -1,5 +1,7 @@
+# Third party modules
 import pytest
 
+# Internal modules
 from main import app
 
 
@@ -11,6 +13,7 @@ def fastapi():
 
 
 def test_app(fastapi):
+    # Third party modules
     from fastapi import FastAPI
 
     assert type(app) is FastAPI

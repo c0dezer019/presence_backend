@@ -1,3 +1,4 @@
+# Standard modules
 from typing import NewType, Tuple
 
 FilterLevels = NewType('FilterLevels', tuple[int])

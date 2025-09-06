@@ -1,14 +1,22 @@
-# Internal modules
-from logging import getLogger, basicConfig, Formatter, Filter, LogRecord, INFO, Logger as L
+# Standard modules
+from logging import (
+    INFO,
+    Filter,
+    Formatter,
+    Logger as L,
+    LogRecord,
+    basicConfig,
+    getLogger,
+)
 from logging.handlers import RotatingFileHandler
 from os import getenv
 from os.path import relpath
 from typing import Optional
 
+# Third party modules
 # External modules
 from dotenv import load_dotenv
 
-from ..graphql.lib.types import Snowflake
 # Internal Modules
 from ..lib.types import FilterLevels, filter_args
 
@@ -16,7 +24,7 @@ load_dotenv()
 
 
 def rel(file: str) -> str:
-    return relpath(file, getenv('START_PATH')).replace("/", ".").replace('.py', '')
+    return relpath(file, getenv("START_PATH")).replace("/", ".").replace(".py", "")
 
 
 class Logger:
@@ -31,7 +39,13 @@ class Logger:
     :param stack_info: Should stack_info be provided for level >30 messages?
     """
 
-    def __init__(self, file_name: str, module: str, exc_info: bool = True, stack_info: bool = True):
+    def __init__(
+        self,
+        file_name: str,
+        module: str,
+        exc_info: bool = True,
+        stack_info: bool = True,
+    ):
         basicConfig()
         self._lvl_filter = None
         self._file = rel(file_name)
@@ -39,9 +53,13 @@ class Logger:
         self._stack_info = stack_info
         self._logger = getLogger(module)
         self._logger.setLevel(INFO)
-        self._handler = RotatingFileHandler(f'logs/{self._file}', maxBytes=500000, backupCount=5)
-        self._formatter = Formatter('%(name)s: %(asctime)s | %(levelname)s | %(filename)s%(lineno)s | %(process)d | '
-                                    '%(src)s >>> %(message)s')
+        self._handler = RotatingFileHandler(
+            f"logs/{self._file}", maxBytes=500000, backupCount=5
+        )
+        self._formatter = Formatter(
+            "%(name)s: %(asctime)s | %(levelname)s | %(filename)s%(lineno)s | %(process)d | "
+            "%(src)s >>> %(message)s"
+        )
         self._handler.setFormatter(self._formatter)
         self._logger.addHandler(self._handler)
 
@@ -70,45 +88,76 @@ class Logger:
 
         return self._logger
 
-    def debug(self, exception: Exception, src='general'):
-        self._logger.debug(exception, exc_info=True, stack_info=True, extra={'src': src})
+    def debug(self, exception: Exception, src="general"):
+        self._logger.debug(
+            exception, exc_info=True, stack_info=True, extra={"src": src}
+        )
 
-    def info(self, msg: str, src='general'):
-        self._logger.info(msg, extra={'src': src})
+    def info(self, msg: str, *args, src="general"):
+        self._logger.info(msg, *args, extra={"src": src})
 
-    def warning(self, msg: str | Exception, src: str | Snowflake = 'general', exc_info: Optional[bool] = None,
-                stack_info: Optional[bool] = None):
+    def warning(
+        self,
+        msg: str | Exception,
+        src: str | int = "general",
+        exc_info: Optional[bool] = None,
+        stack_info: Optional[bool] = None,
+        *args,
+    ):
         self._logger.warning(
             msg,
+            *args,
             exc_info=exc_info if exc_info is not None else self._exc_info,
             stack_info=stack_info if stack_info is not None else self._stack_info,
-            extra={'src': src})
+            extra={"src": src},
+        )
 
-    def error(self, msg: str | Exception, src: Optional[str | Snowflake] = 'general', exc_info: Optional[bool] = None,
-              stack_info: Optional[bool] = None):
+    def error(
+        self,
+        msg: str | Exception,
+        src: Optional[str | int] = "general",
+        exc_info: Optional[bool] = None,
+        stack_info: Optional[bool] = None,
+        *args,
+    ):
         self._logger.error(
             msg,
+            *args,
             exc_info=exc_info if exc_info is not None else self._exc_info,
             stack_info=stack_info if stack_info is not None else self._stack_info,
-            extra={'src': src}
+            extra={"src": src},
         )
 
-    def exception(self, msg: str | Exception, src: str | Snowflake = 'general', exc_info: Optional[bool] = None,
-                  stack_info: Optional[bool] = None):
+    def exception(
+        self,
+        msg: str | Exception,
+        src: str | int = "general",
+        exc_info: Optional[bool] = None,
+        stack_info: Optional[bool] = None,
+        *args,
+    ):
         self._logger.exception(
             msg,
+            *args,
             exc_info=exc_info if exc_info is not None else self._exc_info,
             stack_info=stack_info if stack_info is not None else self._stack_info,
-            extra={'src': src}
+            extra={"src": src},
         )
 
-    def critical(self, msg: str | Exception, src: str | Snowflake = 'general',
-                 exc_info: Optional[bool] = None, stack_info: Optional[bool] = None):
+    def critical(
+        self,
+        msg: str | Exception,
+        src: str | int = "general",
+        exc_info: Optional[bool] = None,
+        stack_info: Optional[bool] = None,
+        *args,
+    ):
         self._logger.critical(
             msg,
+            *args,
             exc_info=exc_info if exc_info is not None else self._exc_info,
             stack_info=stack_info if stack_info is not None else self._stack_info,
-            extra={'src': src}
+            extra={"src": src},
         )
 
     @staticmethod
@@ -118,7 +167,7 @@ class Logger:
 
         :param file: The file to clear.
         """
-        with open(f'logs/{file}', 'w') as f:
+        with open(f"logs/{file}", "w") as f:
             f.truncate(0)
         f.close()
 
@@ -134,5 +183,5 @@ class LevelFilter(Filter):
         super().__init__()
         self._levels = levels
 
-    def filter(self, record: LogRecord) -> bool | None:
+    def filter(self, record: LogRecord) -> bool | LogRecord:
         return record.levelno in self._levels
