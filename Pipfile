@@ -16,13 +16,20 @@ strawberry-graphql = {extras = ["debug-server"], version = "*"}
 fastapi = "*"
 bs4 = "*"
 colorlog = "*"
+strawberry-sqlalchemy-mapper = "*"
+alembic = "*"
 
 [dev-packages]
 pytest = "*"
 pytest-reportlog = "*"
 httpx = "*"
-black = "*"
 isort = "*"
+black = "*"
 
 [requires]
 python_version = "3.13.7"
+
+[scripts]
+dev = "fastapi dev main.py --app _app"
+prod = "fastapi run main.py --app _app"
+revise_db = "alembic revision --autogenerate"
