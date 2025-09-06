@@ -1,10 +1,12 @@
-from sqlalchemy import Column, Integer, ForeignKey, Table
+# Third party modules
+from sqlalchemy import Column, ForeignKey, Integer, Table
 
-from app.database.models import Base
+# Internal modules
+from app.database.models import BaseModel
 
 members_guilds = Table(
     "members_guilds",
-    Base.metadata,
+    BaseModel.metadata,
     Column("member_id", Integer, ForeignKey("members.id"), primary_key=True),
     Column("guild_id", Integer, ForeignKey("guilds.id"), primary_key=True),
 )

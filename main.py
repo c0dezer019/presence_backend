@@ -1,24 +1,18 @@
 # Third part modules
+# Third party modules
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
 from strawberry import Schema
 from strawberry.fastapi import GraphQLRouter
 
 # Internal modules
 from app.database import db, engine
-from app.database.models import Base
-from app.graphql.schema import Query, Mutation
-from app.utils.logging import rel, Logger
+from app.database.models import BaseModel
+from app.graphql.schema import Mutation, Query
+from app.utils.logging import Logger, rel
 
-Base.metadata.create_all(engine)
+BaseModel.metadata.create_all(engine)
 
 logger = Logger(rel(__file__), __name__).logger()
-
-origins = [
-    "http://localhost:8000",
-    "https://localhost:8000",
-    "http://127.0.0.1:5432"
-]
 
 
 def get_db():
@@ -38,12 +32,6 @@ def graphql_app():
 
 def app():
     fastapi = FastAPI(name=__name__)
-    fastapi.add_middleware(
-        CORSMiddleware,
-        allow_origins=origins,
-        allow_methods=["*"],
-        allow_headers=["*"]
-    )
 
     fastapi.include_router(graphql_app(), prefix="/gql")
     return fastapi
