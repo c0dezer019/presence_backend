@@ -43,7 +43,6 @@ class MemberShard(BaseModel):
     admin_access: Mapped[bool] = mapped_column(Boolean, default=False)
     flags: Mapped[list[str]] = mapped_column(ARRAY(String), default=[])
     last_act: Mapped[str] = mapped_column(String, nullable=True)
-    last_act_server: Mapped[int] = mapped_column(BigInteger, nullable=True)
     last_act_ch: Mapped[int] = mapped_column(BigInteger, nullable=True)
     last_act_ts: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=True
@@ -150,16 +149,18 @@ class MemberShard(BaseModel):
 
     def __repr__(self):
         return (
-            f"<Member (id = {self.id}, member_id = {self.member_id}, last_activity = {self.last_act}, "
-            f"last_active_server = {self.last_act_server}, last_active_channel = "
-            f"{self.last_act_ch} last_active_ts = {self.last_act_ts.isoformat() if self.last_act_ts is not None else 'None'}), "
-            f"idle_times = {self.times_idle}, recent_averages = {self.prev_avgs}, status = {self.status}, date_added = "
-            f"{self.date_added}>"
+            f"<Member (id = {self.id}, member_id = {self.member_id}, "
+            f"guild_id = {self.guild_id}, admin_access = {self.admin_access}, "
+            f"flags = {self.flags}, last_act = {self.last_act}, "
+            f"last_act_ch = {self.last_act_ch}, last_act_ts = "
+            f"{self.last_act_ts.isoformat() if self.last_act_ts is not None else 'None'}, "
+            f"times_idle = {self.times_idle}, prev_avgs = {self.prev_avgs}, "
+            f"status = {self.status}, date_added = {self.date_added}>"
         )
 
     def as_dict(self):
         member_dict = {c.name: getattr(self, c.name) for c in self.__table__.columns}  # type: ignore
-        member_dict["last_active_ts"] = member_dict["last_active_ts"].isoformat()
+        member_dict["last_act_ts"] = member_dict["last_act_ts"].isoformat()
         member_dict["date_added"] = member_dict["date_added"].isoformat()
 
         return member_dict
@@ -170,7 +171,6 @@ class MemberShard(BaseModel):
             "last_act_ch": None,
             "last_act_ts": None,
             "times_idle": [],
-            "avg_idle_time": None,
             "prev_avgs": [],
             "status": "reset",
         }

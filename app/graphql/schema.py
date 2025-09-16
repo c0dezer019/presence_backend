@@ -64,15 +64,7 @@ class IdleStats:
 
 
 @type
-class GuildLastActivity:
-    ch: Optional[Snowflake] = UNSET
-    type: Optional[str] = UNSET
-    ts: Optional[datetime] = UNSET
-
-
-@type
-class MemberLastActivity:
-    lastActServer: Optional[Snowflake] = UNSET
+class LastAct:
     ch: Optional[Snowflake] = UNSET
     type: Optional[str] = UNSET
     ts: Optional[datetime] = UNSET
@@ -82,7 +74,7 @@ class MemberLastActivity:
 class Member(User):
     member_id: Snowflake
     admin_access: Optional[bool] = UNSET
-    last_act: MemberLastActivity
+    last_act: LastAct
     idle_stats: IdleStats
     status: Optional[str] = UNSET
     date_added: Optional[datetime] = UNSET
@@ -123,7 +115,7 @@ class Server:
 @type
 class Guild(Server):
     guild_id: Snowflake
-    last_act: GuildLastActivity
+    last_act: LastAct
     idle_stats: IdleStats
     status: Optional[str] = UNSET
     settings: JSON = field(default_factory=_settings_default)
@@ -172,12 +164,22 @@ class ISettings:
 
 
 @input
+class UpdateLastAct:
+    ch: Optional[Snowflake] = UNSET
+    type: str
+    ts: datetime
+
+
+@input
+class UpdateIdleStats:
+    times_idle: list[int]
+    prev_avgs: list[int]
+
+
+@input
 class GuildUpdate:
-    last_act: Optional[str] = UNSET
-    last_act_ch: Optional[Snowflake] = UNSET
-    last_act_ts: Optional[datetime] = UNSET
-    times_idle: Optional[list[int]] = UNSET
-    prev_avgs: Optional[list[int]] = UNSET
+    last_act: Optional[UpdateLastAct] = UNSET
+    idle_stats: Optional[UpdateIdleStats] = UNSET
     status: Optional[str] = UNSET
     settings: Optional[JSON] = UNSET
 
@@ -191,12 +193,8 @@ class MemberCreate:
 @input
 class MemberUpdate:
     admin_access: Optional[bool] = UNSET
-    last_act: Optional[str] = UNSET
-    last_act_server: Optional[Snowflake] = UNSET
-    last_act_ch: Optional[Snowflake] = UNSET
-    last_act_ts: Optional[datetime] = UNSET
-    times_idle: Optional[list[int]] = UNSET
-    prev_avgs: Optional[list[int]] = UNSET
+    last_act: Optional[UpdateLastAct] = UNSET
+    idle_stats: Optional[UpdateIdleStats] = UNSET
     flags: Optional[list[str]] = UNSET
     status: Optional[str] = UNSET
 
@@ -214,7 +212,7 @@ class GuildMutations:
                 guilds.append(
                     Guild(
                         guild_id=Snowflake(guild.guild_id),
-                        last_act=GuildLastActivity(),
+                        last_act=LastAct(),
                         idle_stats=IdleStats(),
                     )
                 )
@@ -234,7 +232,7 @@ class GuildMutations:
 
             guild = Guild(
                 guild_id=Snowflake(_guild.guild_id),
-                last_act=GuildLastActivity(
+                last_act=LastAct(
                     ch=_guild.last_act_ch,
                     type=_guild.last_act,
                     ts=_guild.last_act_ts,
@@ -312,8 +310,7 @@ class MemberMutations:
                     member_id=Snowflake(member.member_id),
                     admin_access=member.admin_access,
                     flags=member.flags,
-                    last_act=MemberLastActivity(
-                        lastActServer=member.last_act_server,
+                    last_act=LastAct(
                         ch=member.last_act_ch,
                         type=member.last_act,
                         ts=member.last_act_ts,
@@ -366,8 +363,7 @@ class MemberQueries:
                 member_id=Snowflake(_member[0].member_id),
                 admin_access=_member[0].admin_access,
                 flags=_member[0].flags,
-                last_act=MemberLastActivity(
-                    lastActServer=_member[0].last_act_server,
+                last_act=LastAct(
                     ch=_member[0].last_act_ch,
                     type=_member[0].last_act,
                     ts=_member[0].last_act_ts,
@@ -421,8 +417,7 @@ class GuildQueries:
                         admin_access=member.admin_access,
                         date_added=member.date_added,
                         flags=member.flags,
-                        last_act=MemberLastActivity(
-                            lastActServer=member.last_act_server,
+                        last_act=LastAct(
                             ch=member.last_act_ch,
                             type=member.last_act,
                             ts=member.last_act_ts,
@@ -439,7 +434,7 @@ class GuildQueries:
                 status=_guild.status,
                 settings=JSON(_guild.settings),
                 date_added=_guild.date_added,
-                last_act=GuildLastActivity(
+                last_act=LastAct(
                     ch=_guild.last_act_ch, type=_guild.last_act, ts=_guild.last_act_ts
                 ),
                 idle_stats=IdleStats(
@@ -473,8 +468,7 @@ class GuildQueries:
                             admin_access=member.admin_access,
                             flags=member.flags,
                             status=member.status,
-                            last_act=MemberLastActivity(
-                                lastActServer=member.last_act_server,
+                            last_act=LastAct(
                                 ch=member.last_act_ch,
                                 ts=member.last_act_ts,
                                 type=member.last_act,
@@ -490,7 +484,7 @@ class GuildQueries:
                     Guild(
                         guild_id=Snowflake(guild.guild_id),
                         status=guild.status,
-                        last_act=GuildLastActivity(
+                        last_act=LastAct(
                             ch=guild.last_act_ch,
                             type=guild.last_act,
                             ts=guild.last_act_ts,
