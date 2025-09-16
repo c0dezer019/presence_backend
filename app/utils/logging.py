@@ -115,10 +115,10 @@ class Logger:
     def error(
         self,
         msg: str | Exception,
+        *args,
         src: Optional[str | int] = "general",
         exc_info: Optional[bool] = None,
         stack_info: Optional[bool] = None,
-        *args,
     ):
         self._logger.error(
             msg,

@@ -27,6 +27,7 @@ class BaseModel(Base):
         one = session.scalar(select(cls).where(cls.snowflake == snowflake))
 
         if not one:
+            logger.info("%s %s not found.", cls.__name__, snowflake)
             return False
 
         logger.info("%s %s(%s) found.", one.__class__.__name__, one.name, one.snowflake)
@@ -53,9 +54,12 @@ class BaseModel(Base):
         ]
 
         if missing:
+            logger.info("%s missing required arguments: %s", cls.__name__, missing)
             raise TypeError(f"Defaults is missing the following arguments: {missing}")
 
         snowflake = defaults.get("snowflake")
+
+        logger.info("Checking to see if %s already exists.", cls.__name__)
         instance = cls.get_one(session, snowflake)
 
         if instance:
@@ -85,6 +89,8 @@ class BaseModel(Base):
         ]
 
         if missing:
+            logger.error("%s is missing required arguments: %s", cls.__name__, missing)
+
             raise TypeError(f"Defaults is missing the following arguments: {missing}")
 
         logger.info(
@@ -100,5 +106,7 @@ class BaseModel(Base):
 
         session.add(_cls)
         session.commit()
+
+        logger.info("%s created:\n\n%s", cls.__name__, _cls)
 
         return _cls

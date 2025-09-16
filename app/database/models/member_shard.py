@@ -17,11 +17,12 @@ from sqlalchemy import (
     Integer,
     String,
     UniqueConstraint,
+    literal_column,
     select,
     update,
 )
 from sqlalchemy.dialects.postgresql import insert
-from sqlalchemy.orm import Mapped, Session, mapped_column, relationship
+from sqlalchemy.orm import Mapped, Session, mapped_column
 
 # Internal modules
 from app.database import session
@@ -35,10 +36,10 @@ class MemberShard(BaseModel):
     __tablename__ = "member_shards"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, nullable=False)
-    snowflake: Mapped[int] = mapped_column(BigInteger, nullable=False)
-    name: Mapped[str] = mapped_column(String, nullable=False)
-    guild_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("guilds.id"))
-    guild = relationship("Guild", back_populates="members")
+    member_id: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    guild_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("guilds.id", ondelete="cascade")
+    )
     admin_access: Mapped[bool] = mapped_column(Boolean, default=False)
     flags: Mapped[list[str]] = mapped_column(ARRAY(String), default=[])
     last_act: Mapped[str] = mapped_column(String, nullable=True)
@@ -49,7 +50,6 @@ class MemberShard(BaseModel):
     )
     times_idle: Mapped[list[int]] = mapped_column(ARRAY(Integer), default=[])
     # Instant average like an instant MPG in the car.
-    avg_idle_time: Mapped[int] = mapped_column(Integer, nullable=True)
     prev_avgs: Mapped[list[int]] = mapped_column(
         ARRAY(Integer), default=[], nullable=True
     )
@@ -62,11 +62,13 @@ class MemberShard(BaseModel):
     )
 
     __table_args__ = (
-        UniqueConstraint("snowflake", "guild_id", name="uq_snowflake_guild"),
+        UniqueConstraint("member_id", "guild_id", name="uq_member_guild"),
     )
 
     @classmethod
-    def bulk_create(cls: Type[MemberShard], session: Session, bulk_data: list[MemberShard]) -> Sequence[MemberShard]:
+    def bulk_create(
+        cls: Type[MemberShard], session: Session, bulk_data: list[MemberShard]
+    ) -> Sequence[MemberShard]:
         logger.info(
             "Attempting to bulk create %s %ss:\n\n", len(bulk_data), cls.__name__
         )
@@ -78,22 +80,39 @@ class MemberShard(BaseModel):
             else "",
         )
 
-        data_dicts = list({d["snowflake"]: d for d in bulk_data}.values())
+        data_dicts = list({d["member_id"]: d for d in bulk_data}.values())
 
         stmt = insert(cls).values(data_dicts)
         conflict_stmt = stmt.on_conflict_do_update(
-            constraint="uq_snowflake_guild",
+            constraint="uq_member_guild",
             set_={
                 c.name: getattr(stmt.excluded, c.name)
                 for c in cls.__table__.columns
-                if c.name not in ("id", "snowflake", "guild_id")
+                if c.name not in ("id", "member_id", "guild_id")
             },
-        ).returning(cls)
+        ).returning(cls, literal_column("xmax"))
 
-        _cls: Sequence[MemberShard] = session.execute(conflict_stmt).unique().scalars().all()
+        results = session.execute(conflict_stmt).all()
         session.commit()
 
-        return _cls
+        members: list[MemberShard] = []
+        created_count = 0
+        updated_count = 0
+
+        for member, xmax in results:
+            member.__created__ = xmax == 0
+            if member.__created__:
+                created_count += 1
+            else:
+                updated_count += 1
+
+            members.append(member)
+
+        logger.info(
+            "%s %s created, %s updated.", created_count, cls.__name__, updated_count
+        )
+
+        return members
 
     @classmethod
     def get_all(cls: Type[MemberShard], guild_id: int) -> Sequence[MemberShard]:
@@ -108,7 +127,10 @@ class MemberShard(BaseModel):
         )
 
         if not all:
+            logger.error("Unable to find any %s's in guild %s.", cls.__name__, guild_id)
             return []
+
+        logger.info("%s %ss found.", all.count, cls.__name__)
 
         return all
 
@@ -128,12 +150,10 @@ class MemberShard(BaseModel):
 
     def __repr__(self):
         return (
-            f"<Member (id = {self.id}, name = {self.name}, "
-            f"member_id = {self.snowflake}, guild = {self.guild}, last_activity = {self.last_act}, "
+            f"<Member (id = {self.id}, member_id = {self.member_id}, last_activity = {self.last_act}, "
             f"last_active_server = {self.last_act_server}, last_active_channel = "
             f"{self.last_act_ch} last_active_ts = {self.last_act_ts.isoformat() if self.last_act_ts is not None else 'None'}), "
-            f"idle_times = {self.times_idle}, average_idle_time = {self.avg_idle_time}, "
-            f"recent_averages = {self.prev_avgs}, status = {self.status}, date_added = "
+            f"idle_times = {self.times_idle}, recent_averages = {self.prev_avgs}, status = {self.status}, date_added = "
             f"{self.date_added}>"
         )
 

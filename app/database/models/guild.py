@@ -17,14 +17,15 @@ from sqlalchemy import (
     DateTime,
     Integer,
     String,
+    delete,
+    literal_column,
     select,
     update,
 )
 from sqlalchemy.dialects.postgresql import JSONB, insert
-from sqlalchemy.orm import Mapped, Session, mapped_column, relationship
+from sqlalchemy.orm import Mapped, WriteOnlyMapped, Session, mapped_column, relationship
 
 # Internal modules
-from app.database import session
 from app.database.models import BaseModel
 from app.database.models.member_shard import MemberShard
 from app.utils.logging import Logger
@@ -38,15 +39,13 @@ class Guild(BaseModel):
     _settings = {"auto_kick": False, "time_before_inactive": 2592000}
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    snowflake: Mapped[int] = mapped_column(BigInteger, nullable=False, unique=True)
-    name: Mapped[str] = mapped_column(String, nullable=False)
+    guild_id: Mapped[int] = mapped_column(BigInteger, nullable=False, unique=True)
     last_act: Mapped[str] = mapped_column(String, nullable=True, default=None)
     last_act_ch: Mapped[int] = mapped_column(BigInteger, nullable=True, default=None)
     last_act_ts: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
     times_idle: Mapped[int] = mapped_column(ARRAY(Integer), nullable=True, default=[])
-    avg_idle_time: Mapped[int] = mapped_column(Integer, nullable=True)
     prev_avgs: Mapped[list[int]] = mapped_column(ARRAY(Integer), default=[])
     status: Mapped[str] = mapped_column(String, nullable=False, server_default="new")
     settings: Mapped[dict[str, Any]] = mapped_column(
@@ -55,10 +54,8 @@ class Guild(BaseModel):
         default=json.dumps(_settings),
         server_default=json.dumps(_settings),
     )
-    members: Mapped[list[MemberShard]] = relationship(
-        "MemberShard",
-        lazy="dynamic",
-        cascade="all,delete",
+    members: WriteOnlyMapped["MemberShard"] = relationship(
+        "MemberShard", cascade="all,delete-orphan", passive_deletes=True
     )
     date_added: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
@@ -69,7 +66,7 @@ class Guild(BaseModel):
     @classmethod
     def bulk_create(
         cls: Type[Guild], session: Session, bulk_data: list[Guild]
-    ) -> Sequence[Guild]:
+    ) -> Sequence["Guild"]:
         logger.info(
             "Attempting to bulk create %s %ss:\n\n", len(bulk_data), cls.__name__
         )
@@ -81,26 +78,65 @@ class Guild(BaseModel):
             else "",
         )
 
-        data_dicts = list({d["snowflake"]: d for d in bulk_data}.values())
+        data_dicts = list({d["guild_id"]: d for d in bulk_data}.values())
 
         stmt = insert(cls).values(data_dicts)
         conflict_stmt = stmt.on_conflict_do_update(
-            index_elements=[cls.snowflake],
+            index_elements=[cls.guild_id],
             set_={
                 c.name: getattr(stmt.excluded, c.name)
                 for c in cls.__table__.columns
-                if c.name not in ("snowflake", "id")
+                if c.name not in ("guild_id", "id")
             },
-        ).returning(cls)
+        ).returning(cls, literal_column("xmax"))
 
-        _cls: Sequence[Guild] = session.execute(conflict_stmt).unique().scalars().all()
+        logger.info("Creating or updating %s", cls.__name__)
+
+        results = session.execute(conflict_stmt).all()
         session.commit()
 
-        return _cls
+        guilds: list[Guild] = []
+        created_count = 0
+        updated_count = 0
+
+        for guild, xmax in results:
+            guild.__created__ = xmax == 0
+            if guild.__created__:
+                created_count += 1
+            else:
+                updated_count += 1
+
+            guilds.append(guild)
+
+        logger.info(
+            "%s %s created. %s updated.", created_count, cls.__name__, updated_count
+        )
+
+        return guilds
+
+    def get_members(self, session: Session) -> Sequence[MemberShard]:
+        members = session.scalars(self.members.select()).all()
+
+        return members
+
+    def prune(self, session: Session):
+        cutoff = (
+            now()
+            .shift(seconds=-json.loads(self.settings)["time_before_inactive"])
+            .isoformat()
+        )
+
+        session.execute(
+            delete(MemberShard).filter(
+                MemberShard.guild_id == self.id,
+                MemberShard.last_act_ts < cutoff,
+                MemberShard.status == "archived",
+            )
+        )
+        session.commit()
 
     def add_member(self, session: Session, member: MemberShard):
-        self.members.append(member)
-        session.add(self)
+        self.members.add(member)
         session.commit()
 
     def __required_fields__(self):
@@ -113,38 +149,38 @@ class Guild(BaseModel):
                 and not col.default
                 and not col.primary_key
             ):
-                nullable.add(col.name)
+                nullable.add(col)
 
         return nullable
 
     def __repr__(self):
         return (
-            f"<Guild (id = {self.id}, guild_id = {self.snowflake},  name = {self.name}, "
-            f"last_activity = {self.last_act}, last_active_channel = "
-            f"{self.last_act_ch}, last_active_ts = {self.last_act_ts}, idle_times = "
-            f"{self.times_idle} average_idle_time = {self.avg_idle_time}, recent_averages = "
-            f"{self.prev_avgs}, status = {self.status}, settings = {self.settings}, members = "
-            f"{self.members}, date_added = {self.date_added})>"
+            f"<Guild (id = {self.id}, guild_id = {self.guild_id}, "
+            f"last_activity = {self.last_act}, last_active_channel = {self.last_act_ch}, "
+            f"last_active_ts = {self.last_act_ts}, idle_times = {self.times_idle}, "
+            f"recent_averages = {self.prev_avgs}, status = {self.status}, "
+            f"settings = {self.settings}, members = {self.members}, "
+            f"date_added = {self.date_added})>"
         )
 
-    def as_dict(self):
+    def as_dict(self, session: Session):
         guild_dict = {
             c.name: getattr(self, c.name) for c in self.__table__.columns.values()
         }
         guild_dict["members"] = []
 
-        for member in self.members:
+        for member in session.scalars(self.members.select()).all():
             member_dict = member.as_dict()
             guild_dict["members"].append(member_dict)
 
         return guild_dict
 
-    def hard_reset(self):
+    def hard_reset(self, session):
         """
         WARNING: This is a hard reset and clears all users from a guild and resets all stats. Only to be used to fix database errors and all other measures fail.
         """
         members = (
-            session.scalars(select(MemberShard).filter_by(guild_id=self.snowflake))
+            session.scalars(select(MemberShard).filter_by(guild_id=self.guild_id))
             .unique()
             .all()
         )
@@ -154,12 +190,11 @@ class Guild(BaseModel):
             "last_act_ch": None,
             "last_act_ts": None,
             "times_idle": [],
-            "avg_idle_time": None,
             "prev_avgs": [],
             "status": "reset",
         }
         guild = (
-            update(Guild).where(Guild.snowflake == self.snowflake).values(**defaults)
+            update(Guild).where(Guild.guild_id == self.guild_id).values(**defaults)
         )
 
         for member in members:
@@ -169,7 +204,7 @@ class Guild(BaseModel):
         session.commit()
         session.refresh(self)
 
-    def soft_reset(self, member_id: Optional[int] = None):
+    def soft_reset(self, session, member_id: Optional[int] = None):
         """
         Resets all data to default values to the day the bot joined the guild.
 
@@ -181,18 +216,17 @@ class Guild(BaseModel):
             "last_act_ch": None,
             "last_act_ts": None,
             "times_idle": [],
-            "avg_idle_time": None,
             "prev_avgs": [],
             "status": "reset",
         }
 
         members = (
-            session.scalars(select(MemberShard).filter_by(guild_id=self.snowflake))
+            session.scalars(select(MemberShard).filter_by(guild_id=self.guild_id))
             .unique()
             .all()
         )
         guild_update = (
-            update(Guild).where(Guild.snowflake == self.snowflake).values(**defaults)
+            update(Guild).where(Guild.guild_id == self.guild_id).values(**defaults)
         )
         session.execute(guild_update)
 
@@ -200,7 +234,7 @@ class Guild(BaseModel):
             updated = (
                 update(MemberShard)
                 .where(
-                    MemberShard.guild_id == self.snowflake
+                    MemberShard.guild_id == self.guild_id
                     and MemberShard.member_id == member.member_id
                 )
                 .values(**defaults)

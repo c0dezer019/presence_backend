@@ -9,9 +9,6 @@ Create Date: 2025-09-02 15:24:13.605566
 # Standard modules
 from typing import Sequence, Union
 
-# Third party modules
-import sqlalchemy as sa
-
 # Internal modules
 from alembic import op
 

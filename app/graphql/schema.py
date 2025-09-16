@@ -1,250 +1,276 @@
 # Internal Modules
+# Standard modules
+import json
 from dataclasses import asdict
 from datetime import datetime
-from typing import Optional, NewType, Sequence, Tuple
+from typing import NewType, Optional, Sequence
+
+# Third party modules
+from fastapi import HTTPException
+from sqlalchemy.exc import NoResultFound
 
 # External modules
-import strawberry
-from fastapi import HTTPException
+from strawberry import (
+    ID,
+    UNSET,
+    Schema,
+    field,
+    input,
+    interface,
+    mutation,
+    scalar,
+    type,
+)
 
 # Internal modules
+from app.database.models.member_shard import MemberShard
+
+from ..database.models.guild import Guild as DBGuild
 from ..graphql.resolvers import resolve
 from ..utils.logging import Logger
-from ..database.models.guild import Guild as DBGuild
 
 logger = Logger(__file__, __name__)
 
+_settings_default = {
+    "auto_kick": False,
+    "time_before_inactive": 2592000
+}
 
-Snowflake = strawberry.scalar(
-    NewType("Snowflake", strawberry.ID),
-    serialize=lambda v: v,
-    parse_value=lambda v: v,
+Snowflake = scalar(
+    NewType("Snowflake", ID),
+    serialize=lambda v: str(v),
+    parse_value=lambda v: int(v),
 )
-Dict = strawberry.scalar(
-    NewType("Dict", dict),
-    serialize=lambda v: v,
-    parse_value=lambda v: v,
-)
-Discriminator = strawberry.scalar(
-    NewType("Discriminator", int),
-    serialize=lambda v: v,
-    parse_value=lambda v: v,
-)
-Set = strawberry.scalar(
-    NewType("Set", set),
-    serialize=lambda v: v,
-    parse_value=lambda v: v,
+
+JSON = scalar(
+    NewType("JSON", dict),
+    serialize=lambda v: json.loads(v),
+    parse_value=lambda v: json.dumps(v)
 )
 
 
-@strawberry.interface
+@interface
 class User:
     member_id: Snowflake
-    username: Optional[str] = strawberry.UNSET
-    discriminator: Optional[int] = strawberry.UNSET
-    admin_access: Optional[bool] = strawberry.UNSET
-    date_added: Optional[datetime] = strawberry.UNSET
-    flags: Optional[list[str]] = strawberry.UNSET
+    admin_access: Optional[bool] = UNSET
+    date_added: Optional[datetime] = UNSET
+    flags: Optional[list[str]] = UNSET
 
 
-@strawberry.type
-class NewMember(User):
-    member_id: Snowflake
-    username: str
-    discriminator: int
-    nickname: Optional[str] = strawberry.UNSET
-    admin_access: Optional[bool] = strawberry.UNSET
-    flags: Optional[list[str]] = strawberry.UNSET
-    date_added: Optional[datetime] = strawberry.UNSET
+@type
+class IdleStats:
+    times_idle: list[int] = field(default_factory=list)
+    prev_avgs: list[int] = field(default_factory=list)
 
 
-@strawberry.type
+@type
+class GuildLastActivity:
+    ch: Optional[Snowflake] = UNSET
+    type: Optional[str] = UNSET
+    ts: Optional[datetime] = UNSET
+
+
+@type
+class MemberLastActivity:
+    lastActServer: Optional[Snowflake] = UNSET
+    ch: Optional[Snowflake] = UNSET
+    type: Optional[str] = UNSET
+    ts: Optional[datetime] = UNSET
+
+
+@type
 class Member(User):
     member_id: Snowflake
-    username: Optional[str] = strawberry.UNSET
-    discriminator: Optional[int] = strawberry.UNSET
-    nickname: Optional[str] = strawberry.UNSET
-    admin_access: Optional[bool] = strawberry.UNSET
-    last_activity: Optional[str] = strawberry.UNSET
-    last_active_server: Optional[Snowflake] = strawberry.UNSET
-    last_active_channel: Optional[Snowflake] = strawberry.UNSET
-    last_active_ts: Optional[datetime] = strawberry.UNSET
-    idle_times: Optional[list[int]] = strawberry.UNSET
-    average_idle_time: Optional[int] = strawberry.UNSET
-    recent_averages: Optional[list[int]] = strawberry.UNSET
-    status: Optional[str] = strawberry.UNSET
-    date_added: Optional[datetime] = strawberry.UNSET
-    flags: Optional[list[str]] = strawberry.UNSET
+    admin_access: Optional[bool] = UNSET
+    last_act: MemberLastActivity
+    idle_stats: IdleStats
+    status: Optional[str] = UNSET
+    date_added: Optional[datetime] = UNSET
+    flags: Optional[list[str]] = UNSET
 
 
-@strawberry.type
+@type
 class MemberResult:
     code: int
-    error: Optional[str] = strawberry.UNSET
-    member: Optional[Member | NewMember] = strawberry.UNSET
+    success: bool
+    created: Optional[bool] = UNSET
+    errors: list[str] = field(default_factory=list)
+    member: Optional[Member] = UNSET
 
 
-@strawberry.type
+@type
 class MembersResult:
     code: int
-    error: Optional[str] = strawberry.UNSET
-    members: Optional[Set] = strawberry.UNSET
+    success: bool
+    errors: list[str] = field(default_factory=list)
+    members: Optional[Member] = field(default_factory=list)
 
 
-@strawberry.interface
+@type
+class Settings:
+    auto_kick: bool = field(default=False)
+    time_before_inactive: int = field(default=2592000)
+
+
+@interface
 class Server:
     guild_id: Snowflake
-    name: Optional[str] = strawberry.UNSET
-    status: Optional[str] = strawberry.UNSET
-    settings: Optional[Dict] = strawberry.UNSET
-    date_added: Optional[datetime] = strawberry.UNSET
+    status: Optional[str] = UNSET
+    settings: Optional[JSON] = UNSET
+    date_added: Optional[datetime] = UNSET
 
 
-@strawberry.type
+@type
 class Guild(Server):
     guild_id: Snowflake
-    name: Optional[str] = strawberry.UNSET
-    last_activity: Optional[str] = strawberry.UNSET
-    last_active_channel: Optional[Snowflake] = strawberry.UNSET
-    last_active_ts: Optional[datetime] = strawberry.UNSET
-    idle_times: Optional[list[int]] = strawberry.UNSET
-    average_idle_time: Optional[int] = strawberry.UNSET
-    recent_averages: Optional[list[int]] = strawberry.UNSET
-    status: Optional[str] = strawberry.UNSET
-    settings: Optional[Dict] = strawberry.UNSET
-    members: Optional[Set] = strawberry.UNSET
-    date_added: Optional[datetime] = strawberry.UNSET
+    last_act: GuildLastActivity
+    idle_stats: IdleStats
+    status: Optional[str] = UNSET
+    settings: JSON = field(default_factory=_settings_default)
+    members: list[Member] = field(default_factory=list)
+    date_added: Optional[datetime] = UNSET
 
 
-@strawberry.type
+@type
 class GuildResult:
     code: int
-    error: Optional[str] = strawberry.UNSET
-    guild: Optional[Guild] = strawberry.UNSET
+    success: bool
+    created: Optional[bool] = UNSET
+    errors: list[str] = field(default_factory=list)
+    guild: Optional[Guild] = UNSET
 
 
-@strawberry.type
+@type
 class GuildsResult:
     code: int
-    error: Optional[str] = strawberry.UNSET
-    guilds: Optional[Set] = strawberry.UNSET
+    success: bool
+    errors: list[str] = field(default_factory=list)
+    guilds: list[Guild] = field(default_factory=list)
 
 
-@strawberry.type
+@type
 class DeleteResult:
     code: int
-    success_msg: Optional[str] = strawberry.UNSET
-    error: Optional[str] = strawberry.UNSET
+    success_msg: Optional[str] = UNSET
+    errors: list[str] = field(default_factory=list)
 
 
-@strawberry.input
+@input
 class GuildCreate:
     guild_id: Snowflake
-    name: str
 
 
-@strawberry.input
+@input
 class GuildsCreate:
-    guilds: Set
+    guilds: list[GuildCreate]
 
 
-@strawberry.input
+@input
+class ISettings:
+    auto_kick: Optional[bool] = UNSET
+    time_before_inactive: Optional[int] = UNSET
+
+
+@input
 class GuildUpdate:
-    name: Optional[str] = strawberry.UNSET
-    last_activity: Optional[str] = strawberry.UNSET
-    last_active_channel: Optional[Snowflake] = strawberry.UNSET
-    last_active_ts: Optional[datetime] = strawberry.UNSET
-    idle_times: Optional[list[int]] = strawberry.UNSET
-    average_idle_time: Optional[int] = strawberry.UNSET
-    recent_averages: Optional[list[int]] = strawberry.UNSET
-    status: Optional[str] = strawberry.UNSET
-    settings: Optional[Dict] = strawberry.UNSET
-    members: Optional[Set] = strawberry.UNSET
+    last_act: Optional[str] = UNSET
+    last_act_ch: Optional[Snowflake] = UNSET
+    last_act_ts: Optional[datetime] = UNSET
+    times_idle: Optional[list[int]] = UNSET
+    prev_avgs: Optional[list[int]] = UNSET
+    status: Optional[str] = UNSET
+    settings: Optional[JSON] = UNSET
 
 
-@strawberry.input
+@input
 class MemberCreate:
     member_id: Snowflake
-    username: str
-    discriminator: int
-    nickname: Optional[str] = strawberry.UNSET
-    flags: Optional[list[str]] = strawberry.UNSET
+    flags: Optional[list[str]] = UNSET
 
 
-@strawberry.input
+@input
 class MemberUpdate:
-    nickname: Optional[str] = strawberry.UNSET
-    username: Optional[str] = strawberry.UNSET
-    discriminator: Optional[int] = strawberry.UNSET
-    admin_access: Optional[bool] = strawberry.UNSET
-    last_activity: Optional[str] = strawberry.UNSET
-    last_active_server: Optional[Snowflake] = strawberry.UNSET
-    last_active_channel: Optional[Snowflake] = strawberry.UNSET
-    last_active_ts: Optional[datetime] = strawberry.UNSET
-    idle_times: Optional[list[int]] = strawberry.UNSET
-    average_idle_time: Optional[int] = strawberry.UNSET
-    recent_averages: Optional[list[int]] = strawberry.UNSET
-    flags: Optional[list[str]] = strawberry.UNSET
-    status: Optional[str] = strawberry.UNSET
+    admin_access: Optional[bool] = UNSET
+    last_act: Optional[str] = UNSET
+    last_act_server: Optional[Snowflake] = UNSET
+    last_act_ch: Optional[Snowflake] = UNSET
+    last_act_ts: Optional[datetime] = UNSET
+    times_idle: Optional[list[int]] = UNSET
+    prev_avgs: Optional[list[int]] = UNSET
+    flags: Optional[list[str]] = UNSET
+    status: Optional[str] = UNSET
 
 
-@strawberry.type
+@type
 class GuildMutations:
-    @strawberry.mutation
-    def create_guild(self, _input: GuildCreate) -> GuildResult:
-        try:
-            guild: Tuple[int, DBGuild] = resolve.create_guild(
-                _input.guild_id, _input.name
-            )
-
-            return GuildResult(code=guild[0], guild=guild[1])
-
-        except HTTPException as http_e:
-            return GuildResult(code=http_e.status_code, error=http_e.detail)
-
-    @strawberry.mutation
+    @mutation
     def create_guilds(self, bulk_data: GuildsCreate) -> GuildsResult:
         try:
-            guilds: Tuple[int, Sequence[DBGuild]] = resolve.create_guilds(bulk_data)
+            _guilds: Sequence[DBGuild] = resolve.create_guilds(bulk_data)
 
-            return GuildsResult(code=guilds[0], guilds=guilds[1])
+            guilds = []
+
+            for guild in _guilds:
+                guilds.append(
+                    Guild(
+                        guild_id=Snowflake(guild.guild_id),
+                        last_act=GuildLastActivity(),
+                        idle_stats=IdleStats(),
+                    )
+                )
+
+            return GuildsResult(code=200, success=True, guilds=guilds)
 
         except HTTPException as http_e:
-            return GuildsResult(code=http_e.status_code, error=http_e.detail)
-
-    @strawberry.mutation
-    def update_guild(self, guild_id: int, _input: GuildUpdate) -> GuildResult:
-        _input_dict = asdict(_input)
-        try:
-            updated: Tuple[int, DBGuild | None] = resolve.update_guild(
-                guild_id, **_input_dict
+            return GuildsResult(
+                code=http_e.status_code, success=False, errors=[http_e.detail]
             )
 
-            return GuildResult(code=updated[0], guild=updated[1])
+    @mutation
+    def update_guild(self, guild_id: int, _input: GuildUpdate) -> GuildResult:
+        try:
+            _input_dict = asdict(_input)
+            _guild: DBGuild = resolve.update_guild(guild_id, **_input_dict)
+
+            guild = Guild(
+                guild_id=Snowflake(_guild.guild_id),
+                last_act=GuildLastActivity(
+                    ch=_guild.last_act_ch,
+                    type=_guild.last_act,
+                    ts=_guild.last_act_ts,
+                ),
+                idle_stats=IdleStats(
+                    times_idle=_guild.times_idle,
+                    prev_avgs=_guild.prev_avgs,
+                ),
+                settings=JSON(_guild.settings),
+                date_added=_guild.date_added
+            )
+
+            return GuildResult(code=200, success=True, guild=guild)
 
         except HTTPException as http_e:
             return GuildResult(
                 code=http_e.status_code,
-                error=f"Cannot update guild {guild_id}: {http_e.detail}",
+                success=False,
+                errors=[f"Cannot update guild {guild_id}: {http_e.detail}"],
             )
 
-    @strawberry.mutation
+    @mutation
     def reset_guild(self, guild_id: Snowflake) -> GuildResult:
         try:
-            guild = resolve.reset_guild(blame=guild_id)
+            res: tuple[int, bool] = resolve.reset_guild(blame=guild_id)
 
-            return GuildResult(
-                code=200,
-                guild=guild
-            )
+            return GuildResult(code=res[0], success=res[1])
 
         except HTTPException as http_e:
             return GuildResult(
                 code=http_e.status_code,
-                error=f"Cannot reset guild {guild_id}: {str(http_e.detail)}",
+                success=False,
+                errors=[f"Cannot reset guild {guild_id}: {str(http_e.detail)}"],
             )
 
-    @strawberry.mutation
+    @mutation
     def delete_guild(self, guild_id: Snowflake) -> DeleteResult:
         try:
             resolve.delete_guild(guild_id)
@@ -253,53 +279,21 @@ class GuildMutations:
                 code=200, success_msg=f"{guild_id} successfully deleted."
             )
         except HTTPException as http_e:
-            return DeleteResult(code=http_e.status_code, error=http_e.detail)
+            return DeleteResult(code=http_e.status_code, errors=[http_e.detail])
 
 
-@strawberry.type
+@type
 class MemberMutations:
-    @strawberry.mutation
-    def create_member(
-        self,
-        _input: MemberCreate,
-        guild_id: Snowflake,
-        guild_name: str,
-        nickname: Optional[str] = None,
-    ) -> MemberResult:
-        try:
-            resolve.member(
-                guild_id,
-                guild_name,
-                _input.member_id,
-                _input.username,
-                _input.discriminator,
-                nickname,
-            )
-
-            return MemberResult(
-                code=200,
-                member=NewMember(
-                    member_id=Snowflake(_input.member_id),
-                    discriminator=_input.discriminator,
-                    username=_input.username,
-                    nickname=_input.nickname,
-                ),
-            )
-        except HTTPException as http_e:
-            return MemberResult(
-                code=500, error=f"{_input.member_id} cannot be created: {http_e.detail}"
-            )
-
-    @strawberry.mutation
+    @mutation
     def update_member(
         self, member_id: Snowflake, guild_id: Snowflake, _input: MemberUpdate
     ) -> MemberResult:
         """
         Updates a member_shard row.
 
-        :param member_id: Discord user ID.
+        :param snowflake: Discord user ID.
 
-        :param guild_id: Discord server ID.
+        :param snowflake: Discord server ID.
 
         :param _input: object containing data to update.
 
@@ -309,22 +303,41 @@ class MemberMutations:
         _input_dict = asdict(_input)
 
         try:
-            resolve.update_member_shard(member_id, guild_id, **_input_dict)
+            member: MemberShard = resolve.update_member_shard(member_id, guild_id, **_input_dict)
 
             return MemberResult(
                 code=200,
+                success=True,
                 member=Member(
-                    member_id=Snowflake(str(member_id)),
-                    **_input_dict,
+                    member_id=Snowflake(member.member_id),
+                    admin_access=member.admin_access,
+                    flags=member.flags,
+                    last_act=MemberLastActivity(
+                        lastActServer=member.last_act_server,
+                        ch=member.last_act_ch,
+                        type=member.last_act,
+                        ts=member.last_act_ts,
+                    ),
+                    idle_stats=IdleStats(
+                        times_idle=member.times_idle,
+                        prev_avgs=member.prev_avgs,
+                    ),
+                    date_added=member.date_added,
                 ),
             )
         except HTTPException as http_e:
-            return MemberResult(code=http_e.status_code, error=http_e.detail)
+            return MemberResult(
+                code=http_e.status_code, success=False, errors=[http_e.detail]
+            )
+        except NoResultFound as nrf:
+            return MemberResult(
+                code=500, success=False, errors=[nrf]
+            )
 
-    @strawberry.mutation
-    def delete_member(self, guild_id: Snowflake, member_id: Snowflake) -> DeleteResult:
+    @mutation
+    def delete_member(self, member_id: Snowflake, guild_id: Snowflake) -> DeleteResult:
         try:
-            resolve.delete_member_shard(guild_id, member_id)
+            resolve.delete_member_shard(member_id, guild_id)
 
             return DeleteResult(
                 code=200, success_msg=f"{member_id} has been removed from {guild_id}"
@@ -332,87 +345,195 @@ class MemberMutations:
         except HTTPException as http_e:
             return DeleteResult(
                 code=http_e.status_code,
-                error=f"{member_id} could not be removed from {guild_id} do to an unknown error: {str(http_e.detail)}",
+                errors=[
+                    f"{member_id} could not be removed from {guild_id} do to an unknown error: {str(http_e.detail)}"
+                ],
             )
 
 
-@strawberry.type
+@type
 class MemberQueries:
-    @strawberry.field
+    @field
     def member(
         self,
-        guild_id: Snowflake,
-        guild_name: str,
         member_id: Snowflake,
-        username: str,
-        discriminator: Discriminator,
-        nickname: Optional[str] = None,
+        guild_id: Snowflake,
     ) -> MemberResult:
         try:
-            member = resolve.member(
-                guild_id, guild_name, member_id, username, discriminator, nickname
+            _member: tuple[MemberShard, bool] = resolve.member(guild_id, member_id)
+
+            member = Member(
+                member_id=Snowflake(_member[0].member_id),
+                admin_access=_member[0].admin_access,
+                flags=_member[0].flags,
+                last_act=MemberLastActivity(
+                    lastActServer=_member[0].last_act_server,
+                    ch=_member[0].last_act_ch,
+                    type=_member[0].last_act,
+                    ts=_member[0].last_act_ts,
+                ),
+                idle_stats=IdleStats(
+                    times_idle=_member[0].times_idle,
+                    prev_avgs=_member[0].prev_avgs,
+                ),
+                date_added=_member[0].date_added,
             )
 
-            member_dict = asdict(member)
-
-            return MemberResult(code=200, member=Member(**member_dict))
+            return MemberResult(code=200, success=True, created=_member[1], member=member)
 
         except HTTPException as http_e:
             return MemberResult(
                 code=http_e.status_code,
-                error=f"Unable to find member {member_id}: {str(http_e)}",
+                success=False,
+                errors=[f"Unable to find member {member_id}: {str(http_e)}"],
             )
 
-    @strawberry.field
+    @field
     def members(self, guild_id: Snowflake) -> MembersResult:
         try:
             members = resolve.members(guild_id)
 
-            return MembersResult(code=200, members=members)
+            return MembersResult(code=200, success=True, members=members)
 
         except HTTPException as http_e:
             return MembersResult(
                 code=http_e.status_code,
-                error=f"Something went wrong while fetching members for guild {guild_id}: "
-                f"{str(http_e)}",
+                success=False,
+                errors=[
+                    f"Something went wrong while fetching members for guild {guild_id}: {str(http_e)}"
+                ],
             )
 
 
-@strawberry.type
+@type
 class GuildQueries:
-    @strawberry.field
-    def guild(self, guild_id: Snowflake, name: str) -> GuildResult:
-        _guild = resolve.guild(guild_id, name)
+    @field
+    def guild(self, snowflake: Snowflake) -> GuildResult:
+        try:
+            guild_members: tuple[tuple[DBGuild, bool], Sequence[MemberShard]] = resolve.guild(snowflake)
+            _guild: DBGuild = guild_members[0][0]
 
-        return GuildResult(code=_guild[0], guild=_guild[1])
+            members = []
+            for member in guild_members[1]:
+                members.append(
+                    Member(
+                        member_id=Snowflake(member.member_id),
+                        admin_access=member.admin_access,
+                        date_added=member.date_added,
+                        flags=member.flags,
+                        last_act=MemberLastActivity(
+                            lastActServer=member.last_act_server,
+                            ch=member.last_act_ch,
+                            type=member.last_act,
+                            ts=member.last_act_ts,
+                        ),
+                        idle_stats=IdleStats(
+                            times_idle=member.times_idle,
+                            prev_avgs=member.prev_avgs,
+                        ),
+                    )
+                )
 
-    @strawberry.field
-    def guilds(self, caller: Snowflake) -> GuildsResult:
-        _guilds = resolve.guilds(caller)
+            guild = Guild(
+                guild_id=Snowflake(_guild.guild_id),
+                status=_guild.status,
+                settings=JSON(_guild.settings),
+                date_added=_guild.date_added,
+                last_act=GuildLastActivity(
+                    ch=_guild.last_act_ch, type=_guild.last_act, ts=_guild.last_act_ts
+                ),
+                idle_stats=IdleStats(
+                    times_idle=_guild.times_idle,
+                    prev_avgs=_guild.prev_avgs,
+                ),
+                members=members,
+            )
 
-        return GuildsResult(code=200, guilds=_guilds)
+            return GuildResult(code=200, success=True, created=guild_members[0][1], guild=guild)
+        except HTTPException as http_e:
+            return GuildResult(
+                code=http_e.status_code,
+                success=False,
+                errors=[f"Unable to find guild {snowflake}: {str(http_e.detail)}"],
+            )
+
+    @field
+    def guilds(self) -> GuildsResult:
+        try:
+            _guilds: Sequence[DBGuild] = resolve.guilds()
+            guilds: list[Guild] = []
+
+            for guild in _guilds:
+                members = []
+
+                for member in guild.members:
+                    members.append(
+                        Member(
+                            member_id=Snowflake(member.member_id),
+                            admin_access=member.admin_access,
+                            flags=member.flags,
+                            status=member.status,
+                            last_act=MemberLastActivity(
+                                lastActServer=member.last_act_server,
+                                ch=member.last_act_ch,
+                                ts=member.last_act_ts,
+                                type=member.last_act,
+                            ),
+                            idle_stats=IdleStats(
+                                times_idle=member.times_idle,
+                                prev_avgs=member.prev_avgs,
+                            ),
+                            date_added=member.date_added,
+                        )
+                    )
+                guilds.append(
+                    Guild(
+                        guild_id=Snowflake(guild.guild_id),
+                        status=guild.status,
+                        last_act=GuildLastActivity(
+                            ch=guild.last_act_ch,
+                            type=guild.last_act,
+                            ts=guild.last_act_ts,
+                        ),
+                        idle_stats=IdleStats(
+                            times_idle=guild.times_idle,
+                            prev_avgs=guild.prev_avgs,
+                        ),
+                        settings=json.loads(guild.settings),
+                        date_added=guild.date_added,
+                        members=members,
+                    )
+                )
+
+            return GuildsResult(code=200, success=True, guilds=guilds)
+        except HTTPException as http_e:
+            return GuildsResult(
+                code=http_e.status_code,
+                success=False,
+                errors=[f"Unable to fetch guilds: {str(http_e.detail)}"],
+            )
 
 
-@strawberry.type
+@type
 class Query:
-    @strawberry.field
+    @field
     def member(self) -> MemberQueries:
         return MemberQueries()
 
-    @strawberry.field
+    @field
     def guild(self) -> GuildQueries:
         return GuildQueries()
 
 
-@strawberry.type
+@type
 class Mutation:
-    @strawberry.field
+    @field
     def guild(self) -> GuildMutations:
         return GuildMutations()
 
-    @strawberry.field
+    @field
     def member(self) -> MemberMutations:
         return MemberMutations()
 
 
-schema = strawberry.Schema(query=Query, mutation=Mutation)
+schema = Schema(query=Query, mutation=Mutation)

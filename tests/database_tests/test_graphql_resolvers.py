@@ -54,7 +54,7 @@ class TestResolvers:
         discriminator = 1234
 
         assert isinstance(member, MemberShard)
-        assert member.snowflake == member_id
+        assert member.member_id == member_id
         assert member.username == username
         assert member.discriminator == discriminator
         assert member.guild_id == guild.guild_id
