@@ -404,9 +404,9 @@ class MemberQueries:
 @type
 class GuildQueries:
     @field
-    def guild(self, snowflake: Snowflake) -> GuildResult:
+    def guild(self, guild_id: Snowflake) -> GuildResult:
         try:
-            guild_members: tuple[tuple[DBGuild, bool], Sequence[MemberShard]] = resolve.guild(snowflake)
+            guild_members: tuple[tuple[DBGuild, bool], Sequence[MemberShard]] = resolve.guild(guild_id)
             _guild: DBGuild = guild_members[0][0]
 
             members = []
@@ -449,7 +449,7 @@ class GuildQueries:
             return GuildResult(
                 code=http_e.status_code,
                 success=False,
-                errors=[f"Unable to find guild {snowflake}: {str(http_e.detail)}"],
+                errors=[f"Unable to find guild {guild_id}: {str(http_e.detail)}"],
             )
 
     @field
