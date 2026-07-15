@@ -165,3 +165,7 @@ app/graphql/test.py
 /logs
 .alembic.sh
 test.py
+
+.CLAUDE.md
+graphify-out
+.claude

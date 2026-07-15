@@ -31,10 +31,10 @@ from ..utils.logging import Logger
 
 logger = Logger(__file__, __name__)
 
-_settings_default = {
-    "auto_kick": False,
-    "time_before_inactive": 2592000
-}
+
+def _settings_default() -> dict:
+    return {"auto_kick": False, "time_before_inactive": 2592000}
+
 
 Snowflake = scalar(
     NewType("Snowflake", ID),
@@ -43,18 +43,16 @@ Snowflake = scalar(
 )
 
 JSON = scalar(
-    NewType("JSON", dict),
-    serialize=lambda v: json.loads(v),
-    parse_value=lambda v: json.dumps(v)
+    NewType("JSON", dict), serialize=lambda v: json.loads(v), parse_value=lambda v: json.dumps(v)
 )
 
 
 @interface
 class User:
     member_id: Snowflake
-    admin_access: Optional[bool] = UNSET
-    date_added: Optional[datetime] = UNSET
-    flags: Optional[list[str]] = UNSET
+    admin_access: Optional[bool] = None
+    date_added: Optional[datetime] = None
+    flags: Optional[list[str]] = None
 
 
 @type
@@ -65,29 +63,31 @@ class IdleStats:
 
 @type
 class LastAct:
-    ch: Optional[Snowflake] = UNSET
-    type: Optional[str] = UNSET
-    ts: Optional[datetime] = UNSET
+    ch: Optional[Snowflake] = None
+    type: Optional[str] = None
+    ts: Optional[datetime] = None
 
 
 @type
 class Member(User):
     member_id: Snowflake
-    admin_access: Optional[bool] = UNSET
+    username: str
+    guild_id: Snowflake
+    admin_access: Optional[bool] = None
     last_act: LastAct
     idle_stats: IdleStats
-    status: Optional[str] = UNSET
-    date_added: Optional[datetime] = UNSET
-    flags: Optional[list[str]] = UNSET
+    status: Optional[str] = None
+    date_added: Optional[datetime] = None
+    flags: Optional[list[str]] = None
 
 
 @type
 class MemberResult:
     code: int
     success: bool
-    created: Optional[bool] = UNSET
+    created: Optional[bool] = None
     errors: list[str] = field(default_factory=list)
-    member: Optional[Member] = UNSET
+    member: Optional[Member] = None
 
 
 @type
@@ -95,7 +95,7 @@ class MembersResult:
     code: int
     success: bool
     errors: list[str] = field(default_factory=list)
-    members: Optional[Member] = field(default_factory=list)
+    members: list[Member] = field(default_factory=list)
 
 
 @type
@@ -107,9 +107,10 @@ class Settings:
 @interface
 class Server:
     guild_id: Snowflake
-    status: Optional[str] = UNSET
-    settings: Optional[JSON] = UNSET
-    date_added: Optional[datetime] = UNSET
+    name: str
+    status: Optional[str] = None
+    settings: Optional[JSON] = None
+    date_added: Optional[datetime] = None
 
 
 @type
@@ -117,19 +118,19 @@ class Guild(Server):
     guild_id: Snowflake
     last_act: LastAct
     idle_stats: IdleStats
-    status: Optional[str] = UNSET
+    status: Optional[str] = None
     settings: JSON = field(default_factory=_settings_default)
     members: list[Member] = field(default_factory=list)
-    date_added: Optional[datetime] = UNSET
+    date_added: Optional[datetime] = None
 
 
 @type
 class GuildResult:
     code: int
     success: bool
-    created: Optional[bool] = UNSET
+    created: Optional[bool] = None
     errors: list[str] = field(default_factory=list)
-    guild: Optional[Guild] = UNSET
+    guild: Optional[Guild] = None
 
 
 @type
@@ -143,13 +144,14 @@ class GuildsResult:
 @type
 class DeleteResult:
     code: int
-    success_msg: Optional[str] = UNSET
+    success_msg: Optional[str] = None
     errors: list[str] = field(default_factory=list)
 
 
 @input
 class GuildCreate:
     guild_id: Snowflake
+    name: str
 
 
 @input
@@ -178,6 +180,7 @@ class UpdateIdleStats:
 
 @input
 class GuildUpdate:
+    name: Optional[str] = UNSET
     last_act: Optional[UpdateLastAct] = UNSET
     idle_stats: Optional[UpdateIdleStats] = UNSET
     status: Optional[str] = UNSET
@@ -187,11 +190,13 @@ class GuildUpdate:
 @input
 class MemberCreate:
     member_id: Snowflake
+    username: str
     flags: Optional[list[str]] = UNSET
 
 
 @input
 class MemberUpdate:
+    username: Optional[str] = UNSET
     admin_access: Optional[bool] = UNSET
     last_act: Optional[UpdateLastAct] = UNSET
     idle_stats: Optional[UpdateIdleStats] = UNSET
@@ -201,6 +206,24 @@ class MemberUpdate:
 
 @type
 class GuildMutations:
+    @mutation
+    def create_guild(self, input: GuildCreate) -> GuildResult:
+        try:
+            _guild: tuple[Guild, bool] = resolve.guild(input.guild_id, input.name)[0]
+
+            guild: Guild = Guild(
+                guild_id=_guild[0].guild_id,
+                name=_guild[0].name,
+                status=_guild[0].status,
+                last_act=LastAct(),
+                idle_stats=IdleStats(),
+                date_added=_guild[0].date_added,
+            )
+
+            return GuildResult(code=200, success=True, created=_guild[1], guild=guild)
+        except HTTPException as e:
+            return GuildResult(code=e.status_code, success=False, errors=[e.detail])
+
     @mutation
     def create_guilds(self, bulk_data: GuildsCreate) -> GuildsResult:
         try:
@@ -212,26 +235,28 @@ class GuildMutations:
                 guilds.append(
                     Guild(
                         guild_id=Snowflake(guild.guild_id),
+                        name=guild.name,
+                        status=guild.status,
                         last_act=LastAct(),
                         idle_stats=IdleStats(),
+                        date_added=guild.date_added,
                     )
                 )
 
             return GuildsResult(code=200, success=True, guilds=guilds)
 
         except HTTPException as http_e:
-            return GuildsResult(
-                code=http_e.status_code, success=False, errors=[http_e.detail]
-            )
+            return GuildsResult(code=http_e.status_code, success=False, errors=[http_e.detail])
 
     @mutation
-    def update_guild(self, guild_id: int, _input: GuildUpdate) -> GuildResult:
+    def update_guild(self, guild_id: Snowflake, _input: GuildUpdate) -> GuildResult:
         try:
             _input_dict = asdict(_input)
             _guild: DBGuild = resolve.update_guild(guild_id, **_input_dict)
 
             guild = Guild(
                 guild_id=Snowflake(_guild.guild_id),
+                name=_guild.name,
                 last_act=LastAct(
                     ch=_guild.last_act_ch,
                     type=_guild.last_act,
@@ -242,7 +267,7 @@ class GuildMutations:
                     prev_avgs=_guild.prev_avgs,
                 ),
                 settings=JSON(_guild.settings),
-                date_added=_guild.date_added
+                date_added=_guild.date_added,
             )
 
             return GuildResult(code=200, success=True, guild=guild)
@@ -273,15 +298,55 @@ class GuildMutations:
         try:
             resolve.delete_guild(guild_id)
 
-            return DeleteResult(
-                code=200, success_msg=f"{guild_id} successfully deleted."
-            )
+            return DeleteResult(code=200, success_msg=f"{guild_id} successfully deleted.")
         except HTTPException as http_e:
             return DeleteResult(code=http_e.status_code, errors=[http_e.detail])
 
 
 @type
 class MemberMutations:
+    @mutation
+    def create_member(self, guild_id: Snowflake, _input: MemberCreate) -> MemberResult:
+        """
+        Creates a member_shard row.
+
+        :param guild_id: Discord server ID.
+
+        :param _input: object containing data to create the member with.
+
+        :return: An instance of MemberResult.
+        """
+
+        _input_dict = asdict(_input)
+
+        try:
+            member, created = resolve.create_member_shard(guild_id, **_input_dict)
+
+            return MemberResult(
+                code=200,
+                success=True,
+                created=created,
+                member=Member(
+                    member_id=Snowflake(member.member_id),
+                    username=member.username,
+                    guild_id=Snowflake(member.guild_id),
+                    admin_access=member.admin_access,
+                    flags=member.flags,
+                    last_act=LastAct(
+                        ch=member.last_act_ch,
+                        type=member.last_act,
+                        ts=member.last_act_ts,
+                    ),
+                    idle_stats=IdleStats(
+                        times_idle=member.times_idle,
+                        prev_avgs=member.prev_avgs,
+                    ),
+                    date_added=member.date_added,
+                ),
+            )
+        except HTTPException as http_e:
+            return MemberResult(code=http_e.status_code, success=False, errors=[http_e.detail])
+
     @mutation
     def update_member(
         self, member_id: Snowflake, guild_id: Snowflake, _input: MemberUpdate
@@ -308,6 +373,8 @@ class MemberMutations:
                 success=True,
                 member=Member(
                     member_id=Snowflake(member.member_id),
+                    username=member.username,
+                    guild_id=Snowflake(member.guild_id),
                     admin_access=member.admin_access,
                     flags=member.flags,
                     last_act=LastAct(
@@ -323,13 +390,9 @@ class MemberMutations:
                 ),
             )
         except HTTPException as http_e:
-            return MemberResult(
-                code=http_e.status_code, success=False, errors=[http_e.detail]
-            )
+            return MemberResult(code=http_e.status_code, success=False, errors=[http_e.detail])
         except NoResultFound as nrf:
-            return MemberResult(
-                code=500, success=False, errors=[nrf]
-            )
+            return MemberResult(code=500, success=False, errors=[nrf])
 
     @mutation
     def delete_member(self, member_id: Snowflake, guild_id: Snowflake) -> DeleteResult:
@@ -354,13 +417,16 @@ class MemberQueries:
     def member(
         self,
         member_id: Snowflake,
+        username: str,
         guild_id: Snowflake,
     ) -> MemberResult:
         try:
-            _member: tuple[MemberShard, bool] = resolve.member(guild_id, member_id)
+            _member: tuple[MemberShard, bool] = resolve.member(guild_id, member_id, username)
 
             member = Member(
                 member_id=Snowflake(_member[0].member_id),
+                username=_member[0].username,
+                guild_id=Snowflake(_member[0].guild_id),
                 admin_access=_member[0].admin_access,
                 flags=_member[0].flags,
                 last_act=LastAct(
@@ -404,9 +470,11 @@ class MemberQueries:
 @type
 class GuildQueries:
     @field
-    def guild(self, guild_id: Snowflake) -> GuildResult:
+    def guild(self, snowflake: Snowflake, name: str) -> GuildResult:
         try:
-            guild_members: tuple[tuple[DBGuild, bool], Sequence[MemberShard]] = resolve.guild(guild_id)
+            guild_members: tuple[tuple[DBGuild, bool], Sequence[MemberShard]] = resolve.guild(
+                snowflake, name
+            )
             _guild: DBGuild = guild_members[0][0]
 
             members = []
@@ -414,6 +482,8 @@ class GuildQueries:
                 members.append(
                     Member(
                         member_id=Snowflake(member.member_id),
+                        username=member.username,
+                        guild_id=Snowflake(member.guild_id),
                         admin_access=member.admin_access,
                         date_added=member.date_added,
                         flags=member.flags,
@@ -431,6 +501,7 @@ class GuildQueries:
 
             guild = Guild(
                 guild_id=Snowflake(_guild.guild_id),
+                name=_guild.name,
                 status=_guild.status,
                 settings=JSON(_guild.settings),
                 date_added=_guild.date_added,
@@ -465,6 +536,8 @@ class GuildQueries:
                     members.append(
                         Member(
                             member_id=Snowflake(member.member_id),
+                            username=member.username,
+                            guild_id=Snowflake(member.guild_id),
                             admin_access=member.admin_access,
                             flags=member.flags,
                             status=member.status,
@@ -483,6 +556,7 @@ class GuildQueries:
                 guilds.append(
                     Guild(
                         guild_id=Snowflake(guild.guild_id),
+                        name=guild.name,
                         status=guild.status,
                         last_act=LastAct(
                             ch=guild.last_act_ch,

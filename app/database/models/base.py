@@ -20,17 +20,29 @@ logger = Logger(__file__, __name__)
 class BaseModel(Base):
     __abstract__ = True
 
+    # Name of the column that acts as this model's snowflake/identity field.
+    # Subclasses override this since the actual column is named differently
+    # per model (e.g. Guild.guild_id, MemberShard.member_id).
+    SNOWFLAKE_FIELD: str = "snowflake"
+
     @classmethod
     def get_one(cls: Type[T], session: Session, snowflake: int) -> T | False:
         logger.info("Searching %s for ID %s.", cls.__name__, snowflake)
 
-        one = session.scalar(select(cls).where(cls.snowflake == snowflake))
+        one = session.scalar(
+            select(cls).where(getattr(cls, cls.SNOWFLAKE_FIELD) == snowflake)
+        )
 
         if not one:
             logger.info("%s %s not found.", cls.__name__, snowflake)
             return False
 
-        logger.info("%s %s(%s) found.", one.__class__.__name__, one.name, one.snowflake)
+        logger.info(
+            "%s %s(%s) found.",
+            one.__class__.__name__,
+            one.name,
+            getattr(one, one.SNOWFLAKE_FIELD),
+        )
 
         return one
 
@@ -57,7 +69,7 @@ class BaseModel(Base):
             logger.info("%s missing required arguments: %s", cls.__name__, missing)
             raise TypeError(f"Defaults is missing the following arguments: {missing}")
 
-        snowflake = defaults.get("snowflake")
+        snowflake = defaults.get(cls.SNOWFLAKE_FIELD)
 
         logger.info("Checking to see if %s already exists.", cls.__name__)
         instance = cls.get_one(session, snowflake)
@@ -97,7 +109,7 @@ class BaseModel(Base):
             "Creating %s: %s (%s)",
             cls.__name__,
             defaults.get("name"),
-            defaults.get("snowflake"),
+            defaults.get(cls.SNOWFLAKE_FIELD),
         )
 
         add = {**defaults, **kwargs}

@@ -36,15 +36,16 @@ logger = Logger(__file__, __name__)
 class Guild(BaseModel):
     __tablename__ = "guilds"
 
+    SNOWFLAKE_FIELD = "guild_id"
+
     _settings = {"auto_kick": False, "time_before_inactive": 2592000}
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     guild_id: Mapped[int] = mapped_column(BigInteger, nullable=False, unique=True)
+    name: Mapped[str] = mapped_column(String, nullable=False, server_default="")
     last_act: Mapped[str] = mapped_column(String, nullable=True, default=None)
     last_act_ch: Mapped[int] = mapped_column(BigInteger, nullable=True, default=None)
-    last_act_ts: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
+    last_act_ts: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
     times_idle: Mapped[int] = mapped_column(ARRAY(Integer), nullable=True, default=[])
     prev_avgs: Mapped[list[int]] = mapped_column(ARRAY(Integer), default=[])
     status: Mapped[str] = mapped_column(String, nullable=False, server_default="new")
@@ -67,15 +68,11 @@ class Guild(BaseModel):
     def bulk_create(
         cls: Type[Guild], session: Session, bulk_data: list[Guild]
     ) -> Sequence["Guild"]:
-        logger.info(
-            "Attempting to bulk create %s %ss:\n\n", len(bulk_data), cls.__name__
-        )
+        logger.info("Attempting to bulk create %s %ss:\n\n", len(bulk_data), cls.__name__)
         logger.info(
             "%s%s",
             bulk_data[:5],
-            "\n... plus {} more".format(len(bulk_data) - 5)
-            if len(bulk_data) - 5 > 0
-            else "",
+            "\n... plus {} more".format(len(bulk_data) - 5) if len(bulk_data) - 5 > 0 else "",
         )
 
         data_dicts = list({d["guild_id"]: d for d in bulk_data}.values())
@@ -108,9 +105,7 @@ class Guild(BaseModel):
 
             guilds.append(guild)
 
-        logger.info(
-            "%s %s created. %s updated.", created_count, cls.__name__, updated_count
-        )
+        logger.info("%s %s created. %s updated.", created_count, cls.__name__, updated_count)
 
         return guilds
 
@@ -121,9 +116,7 @@ class Guild(BaseModel):
 
     def prune(self, session: Session):
         cutoff = (
-            now()
-            .shift(seconds=-json.loads(self.settings)["time_before_inactive"])
-            .isoformat()
+            now().shift(seconds=-json.loads(self.settings)["time_before_inactive"]).isoformat()
         )
 
         session.execute(
@@ -164,9 +157,7 @@ class Guild(BaseModel):
         )
 
     def as_dict(self, session: Session):
-        guild_dict = {
-            c.name: getattr(self, c.name) for c in self.__table__.columns.values()
-        }
+        guild_dict = {c.name: getattr(self, c.name) for c in self.__table__.columns.values()}
         guild_dict["members"] = []
 
         for member in session.scalars(self.members.select()).all():
@@ -180,9 +171,7 @@ class Guild(BaseModel):
         WARNING: This is a hard reset and clears all users from a guild and resets all stats. Only to be used to fix database errors and all other measures fail.
         """
         members = (
-            session.scalars(select(MemberShard).filter_by(guild_id=self.guild_id))
-            .unique()
-            .all()
+            session.scalars(select(MemberShard).filter_by(guild_id=self.guild_id)).unique().all()
         )
 
         defaults = {
@@ -193,9 +182,7 @@ class Guild(BaseModel):
             "prev_avgs": [],
             "status": "reset",
         }
-        guild = (
-            update(Guild).where(Guild.guild_id == self.guild_id).values(**defaults)
-        )
+        guild = update(Guild).where(Guild.guild_id == self.guild_id).values(**defaults)
 
         for member in members:
             session.delete(member)
@@ -221,13 +208,9 @@ class Guild(BaseModel):
         }
 
         members = (
-            session.scalars(select(MemberShard).filter_by(guild_id=self.guild_id))
-            .unique()
-            .all()
+            session.scalars(select(MemberShard).filter_by(guild_id=self.guild_id)).unique().all()
         )
-        guild_update = (
-            update(Guild).where(Guild.guild_id == self.guild_id).values(**defaults)
-        )
+        guild_update = update(Guild).where(Guild.guild_id == self.guild_id).values(**defaults)
         session.execute(guild_update)
 
         for member in members:

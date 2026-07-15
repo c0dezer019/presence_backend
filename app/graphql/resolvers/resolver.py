@@ -37,16 +37,16 @@ class Resolver:
             logger.error(f"bulk_data contained incorrect data: {bulk_data}")
             logger.exception(te)
 
-            raise HTTPException(
-                500, detail=f"bulk_data contained invalid data: {bulk_data}"
-            )
+            raise HTTPException(500, detail=f"bulk_data contained invalid data: {bulk_data}")
 
     def guild(
-        self, guild_id: Snowflake, **kwargs
+        self, guild_id: Snowflake, name: str, **kwargs
     ) -> tuple[tuple[Guild, bool], Sequence[MemberShard]]:
         logger.info("Finding or creating guild %s.", guild_id)
         try:
-            guild: tuple[Guild, bool] = Guild.find_or_create(self.db, int(guild_id))
+            guild: tuple[Guild, bool] = Guild.find_or_create(
+                self.db, {"guild_id": int(guild_id), "name": name}
+            )
 
             return guild, guild[0].get_members(self.db)
         except TypeError as te:
@@ -91,9 +91,7 @@ class Resolver:
         return 200, True
 
     def member(
-        self,
-        guild_id: Snowflake,
-        member_id: Snowflake,
+        self, guild_id: Snowflake, member_id: Snowflake, username: str
     ) -> tuple[MemberShard, bool]:
         logger.info("Creating MemberShard %s in guild %s.", member_id, guild_id)
         try:
@@ -106,6 +104,7 @@ class Resolver:
                 self.db,
                 {
                     "member_id": int(member_id),
+                    "username": username,
                     "guild_id": guild.id,
                 },
             )
@@ -119,10 +118,54 @@ class Resolver:
 
                 guild.add_member(self.db, new_member[0])
 
-                logger.info(
-                    f"MemberShard #{new_member[0].id} successfully added to guild."
-                )
+                logger.info(f"MemberShard #{new_member[0].id} successfully added to guild.")
             elif not new_member[1]:
+                logger.info("Member already exists and wasn't created again.")
+
+            return new_member
+        except TypeError:
+            logger.error("TypeError while attempting to add to %s.", Guild.__name__)
+            logger.exception(
+                "%s received incorrect arguments:\n\n%s",
+                self.__module__,
+                __file__,
+                stack_info=True,
+            )
+
+            raise HTTPException(status_code=500, detail="Incorrect arguments received.")
+
+    def create_member_shard(
+        self, guild_id: Snowflake, member_id: Snowflake, username: str, **kwargs: object
+    ) -> tuple[MemberShard, bool]:
+        logger.info("Creating MemberShard %s in guild %s.", member_id, guild_id)
+        try:
+            guild = Guild.get_one(self.db, int(guild_id))
+
+            if not guild:
+                logger.error("Guild %s not found.", guild_id)
+
+                raise HTTPException(status_code=404, detail=f"Guild {guild_id} not found.")
+
+            defaults = {
+                "member_id": int(member_id),
+                "guild_id": guild.id,
+                "username": username,
+                **{k: v for k, v in kwargs.items() if v is not UNSET},
+            }
+
+            new_member = MemberShard.find_or_create(self.db, defaults)
+
+            if new_member[1]:
+                logger.info(
+                    "User %s created, attaching to guild %s.",
+                    new_member[0].member_id,
+                    guild_id,
+                )
+
+                guild.add_member(self.db, new_member[0])
+
+                logger.info(f"MemberShard #{new_member[0].id} successfully added to guild.")
+            else:
                 logger.info("Member already exists and wasn't created again.")
 
             return new_member
@@ -144,9 +187,7 @@ class Resolver:
             logger.error(f"No members for {guild_id} found.", guild_id)
             logger.exception(nrf, guild_id)
 
-            raise HTTPException(
-                status_code=404, detail=f"No members found for {guild_id}."
-            )
+            raise HTTPException(status_code=404, detail=f"No members found for {guild_id}.")
 
     def update_guild(self, guild_id: Snowflake, **kwargs) -> Guild:
         try:
@@ -155,10 +196,7 @@ class Resolver:
             kwargs = {str(k): v for k, v in kwargs.items() if v is not UNSET}
 
             upd: ReturningUpdate[tuple[Guild]] = (
-                update(Guild)
-                .where(Guild.guild_id == guild_id)
-                .values(**kwargs)
-                .returning(Guild)
+                update(Guild).where(Guild.guild_id == guild_id).values(**kwargs).returning(Guild)
             )
             guild = self.db.execute(upd).scalars().unique().one()
             self.db.commit()
@@ -171,9 +209,7 @@ class Resolver:
             logger.error(f"Incorrect kwargs provided:\n\n{kwargs}", guild_id)
             logger.exception(ke, guild_id)
 
-            raise HTTPException(
-                status_code=500, detail=f"Incorrect key provided: {str(ke)}."
-            )
+            raise HTTPException(status_code=500, detail=f"Incorrect key provided: {str(ke)}.")
 
     def update_member_shard(
         self, member_id: Snowflake, guild_id: Snowflake, **kwargs: object
@@ -234,13 +270,9 @@ class Resolver:
             logger.error(f"Cannot find guild {guild_id}.", src=guild_id)
             logger.exception(nrf, stack_info=True, exc_info=True, src=guild_id)
 
-            raise HTTPException(
-                status_code=404, detail=f"Could not find guild {guild_id}."
-            )
+            raise HTTPException(status_code=404, detail=f"Could not find guild {guild_id}.")
 
-    def delete_member_shard(
-        self, guild_id: Snowflake, member_id: Snowflake
-    ) -> MemberShard | None:
+    def delete_member_shard(self, guild_id: Snowflake, member_id: Snowflake) -> MemberShard | None:
         try:
             logger.info("Attempting to delete member....")
             member_shard: MemberShard = (

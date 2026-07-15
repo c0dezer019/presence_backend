@@ -1,157 +1,169 @@
+"""Date with time (isoformat)"""
 scalar DateTime
-scalar Dict
-scalar Discriminator
-scalar Set
 scalar Snowflake
 
-union MemberNewMember = Member | NewMember
-
 type DeleteResult {
-    code: Int!
-    successMsg: String
-    error: String
+  code: Int!
+  successMsg: String
+  errors: [String!]!
 }
 
 type Guild implements Server {
-    guildId: Snowflake!
-    name: String
-    status: String
-    settings: Dict
-    dateAdded: DateTime
-    lastActivity: String
-    lastActiveChannel: Snowflake
-    lastActiveTs: DateTime
-    idleTimes: [Int!]
-    averageIdleTime: Int
-    recentAverages: [Int!]
-    members: Set
+  guildId: Snowflake!
+  name: String!
+  status: String
+  settings: JSON!
+  dateAdded: DateTime
+  lastAct: LastAct!
+  idleStats: IdleStats!
+  members: [Member!]!
 }
 
 input GuildCreate {
-    guildId: Snowflake!
-    name: String!
+  guildId: Snowflake!
+  name: String!
 }
 
 type GuildMutations {
-    createGuild(Input: GuildCreate!): GuildResult!
-    updateGuild(guildId: Snowflake!, guildName: String!, Input: GuildUpdate!): GuildResult!
-    deleteGuild(guildId: Snowflake!): DeleteResult!
+  createGuild(input: GuildCreate!): GuildResult!
+  createGuilds(bulkData: GuildsCreate!): GuildsResult!
+  updateGuild(guildId: Snowflake!, input: GuildUpdate!): GuildResult!
+  resetGuild(guildId: Snowflake!): GuildResult!
+  deleteGuild(guildId: Snowflake!): DeleteResult!
+}
+
+type GuildQueries {
+  guild(snowflake: Snowflake!): GuildResult!
+  guilds: GuildsResult!
 }
 
 type GuildResult {
-    code: Int!
-    error: String
-    guild: Guild
+  code: Int!
+  success: Boolean!
+  created: Boolean
+  errors: [String!]!
+  guild: Guild
 }
 
 input GuildUpdate {
-    name: String
-    lastActivity: String
-    lastActiveChannel: Snowflake
-    lastActiveTs: DateTime
-    idleTimes: [Int!]
-    averageIdleTime: Int
-    recentAverages: [Int!]
-    status: String
-    settings: Dict
-    members: Set
+  lastAct: UpdateLastAct
+  idleStats: UpdateIdleStats
+  status: String
+  settings: JSON
+}
+
+input GuildsCreate {
+  guilds: [GuildCreate!]!
+}
+
+input GuildCreate {
+  guilds: GuildCreate!
+}
+
+type GuildsResult {
+  code: Int!
+  success: Boolean!
+  errors: [String!]!
+  guilds: [Guild!]!
+}
+
+type IdleStats {
+  timesIdle: [Int!]!
+  prevAvgs: [Int!]!
+}
+
+scalar JSON
+
+type LastAct {
+  ch: Snowflake
+  type: String
+  ts: DateTime
 }
 
 type Member implements User {
-    memberId: Snowflake!
-    username: String
-    discriminator: Int
-    adminAccess: Boolean
-    dateAdded: DateTime
-    flags: [String!]
-    nickname: String
-    lastActivity: String
-    lastActiveServer: Snowflake
-    lastActiveChannel: Snowflake
-    lastActiveTs: DateTime
-    idleTimes: [Int!]
-    averageIdleTime: Int
-    recentAverages: [Int!]
-    status: String
+  memberId: Snowflake!
+  username: String!
+  guildId: Snowflake!
+  adminAccess: Boolean
+  dateAdded: DateTime
+  flags: [String!]
+  lastAct: LastAct!
+  idleStats: IdleStats!
+  status: String
 }
 
 input MemberCreate {
-    memberId: Snowflake!
-    username: String!
-    discriminator: Int!
-    nickname: String
-    flags: [String!]
+  memberId: Snowflake!
+  username: String!
+  flags: [String!]
 }
 
 type MemberMutations {
-    createMember(Input: MemberCreate!, guildId: Snowflake!, guildName: String!, nickname: String = null): MemberResult!
-    updateMember(Input: MemberUpdate!): MemberResult!
-    deleteMember(guildId: Snowflake!, memberId: Snowflake!): DeleteResult!
+  createMember(guildId: Snowflake!, input: MemberCreate!): MemberResult!
+  updateMember(memberId: Snowflake!, guildId: Snowflake!, input: MemberUpdate!): MemberResult!
+  deleteMember(memberId: Snowflake!, guildId: Snowflake!): DeleteResult!
+}
+
+type MemberQueries {
+  member(memberId: Snowflake!, guildId: Snowflake!): MemberResult!
+  members(guildId: Snowflake!): MembersResult!
 }
 
 type MemberResult {
-    code: Int!
-    error: String
-    member: MemberNewMember
+  code: Int!
+  success: Boolean!
+  created: Boolean
+  errors: [String!]!
+  member: Member
 }
 
 input MemberUpdate {
-    memberId: Snowflake!
-    nickname: String
-    username: String
-    discriminator: Int
-    adminAccess: Boolean
-    lastActivity: String
-    lastActiveServer: Snowflake
-    lastActiveChannel: Snowflake
-    lastActiveTs: DateTime
-    idleTimes: [Int!]
-    averageIdleTime: Int
-    recentAverages: [Int!]
-    flags: [String!]
-    status: String
+  username: String
+  adminAccess: Boolean
+  lastAct: UpdateLastAct
+  idleStats: UpdateIdleStats
+  flags: [String!]
+  status: String
 }
 
 type MembersResult {
-    code: Int!
-    error: String
-    members: Set
+  code: Int!
+  success: Boolean!
+  errors: [String!]!
+  members: [Member!]!
 }
 
 type Mutation {
-    guild: GuildMutations!
-    member: MemberMutations!
-}
-
-type NewMember implements User {
-    memberId: Snowflake!
-    username: String!
-    discriminator: Int!
-    adminAccess: Boolean
-    dateAdded: DateTime
-    flags: [String!]
-    nickname: String
+  guild: GuildMutations!
+  member: MemberMutations!
 }
 
 type Query {
-    member(guildId: Snowflake!, guildName: String!, memberId: Snowflake!, username: String!, discriminator: Discriminator!, nickname: String = ""): MemberResult!
-    members: MembersResult!
+  member: MemberQueries!
+  guild: GuildQueries!
 }
 
 interface Server {
-    guildId: Snowflake!
-    name: String
-    status: String
-    settings: Dict
-    dateAdded: DateTime
+  guildId: Snowflake!
+  status: String
+  settings: JSON
+  dateAdded: DateTime
 }
 
+input UpdateIdleStats {
+  timesIdle: [Int!]!
+  prevAvgs: [Int!]!
+}
+
+input UpdateLastAct {
+  ch: Snowflake
+  type: String!
+  ts: DateTime!
+}
 
 interface User {
-    memberId: Snowflake!
-    username: String
-    discriminator: Int
-    adminAccess: Boolean
-    dateAdded: DateTime
-    flags: [String!]
+  memberId: Snowflake!
+  adminAccess: Boolean
+  dateAdded: DateTime
+  flags: [String!]
 }

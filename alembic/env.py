@@ -2,7 +2,7 @@
 from logging.config import fileConfig
 
 # Internal modules
-from alembic import context
+from alembic import context  # type: ignore
 from app.database import engine
 from app.database.database import Database
 from app.database.models.base import Base
@@ -62,9 +62,7 @@ def run_migrations_online() -> None:
     connectable = engine
 
     with connectable.connect() as connection:
-        context.configure(
-            connection=connection, target_metadata=target_metadata
-        )
+        context.configure(connection=connection, target_metadata=target_metadata)
 
         with context.begin_transaction():
             context.run_migrations()

@@ -35,8 +35,11 @@ logger = Logger(__file__, __name__)
 class MemberShard(BaseModel):
     __tablename__ = "member_shards"
 
+    SNOWFLAKE_FIELD = "member_id"
+
     id: Mapped[int] = mapped_column(Integer, primary_key=True, nullable=False)
     member_id: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    username: Mapped[str] = mapped_column(String, nullable=False, server_default="")
     guild_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("guilds.id", ondelete="cascade")
     )
