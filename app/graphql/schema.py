@@ -470,10 +470,10 @@ class MemberQueries:
 @type
 class GuildQueries:
     @field
-    def guild(self, snowflake: Snowflake, name: str) -> GuildResult:
+    def guild(self, guild_id: Snowflake, name: str) -> GuildResult:
         try:
             guild_members: tuple[tuple[DBGuild, bool], Sequence[MemberShard]] = resolve.guild(
-                snowflake, name
+                guild_id, name
             )
             _guild: DBGuild = guild_members[0][0]
 
